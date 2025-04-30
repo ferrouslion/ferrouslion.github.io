@@ -36,9 +36,10 @@
             align-items: center;
         }
 
-        nav .logo {
-            font-size: 1.5rem;
-            font-weight: bold;
+        .logo img {
+            height: 40px; /* Adjust height as needed */
+            width: auto;
+            display: block;
         }
 
         nav ul {
@@ -194,6 +195,10 @@
             .hero p {
                 font-size: 1rem;
             }
+
+            .logo img {
+                height: 30px; /* Smaller logo on mobile */
+            }
         }
     </style>
 </head>
@@ -201,7 +206,9 @@
     <!-- Header -->
     <header>
         <nav>
-            <div class="logo">MyBrand</div>
+            <div class="logo">
+                <img src="https://via.placeholder.com/150x40?text=MyBrand+Logo" alt="MyBrand Logo">
+            </div>
             <ul>
                 <li><a href="#home">Home</a></li>
                 <li><a href="#about">About</a></li>
@@ -256,7 +263,7 @@
 
     <!-- Footer -->
     <footer>
-        <p>&copy; 2025 MyBrand. All rights reserved.</p>
+        <p>© 2025 MyBrand. All rights reserved.</p>
     </footer>
 </body>
 </html>
