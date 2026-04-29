@@ -1,359 +1,1250 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>World Time & Weather Map</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/@joergdietrich/leaflet.terminator@1.0.0/terminator.js"></script>
-    <style>
-        :root { --bg: #f8f9fa; --text: #212529; --panel: #fff; --border: #ddd; }
-        body.dark-mode { --bg: #1e1e1e; --text: #e0e0e0; --panel: #2d2d2d; --border: #444; }
-        body { margin: 0; font-family: Arial, sans-serif; background: var(--bg); color: var(--text); }
-        .container { display: flex; height: 100vh; }
-        #sidebar { width: 380px; background: var(--bg); padding: 20px; overflow-y: auto; border-right: 1px solid var(--border); box-sizing: border-box; position: relative; }
-        #map { flex: 1; }
-        input[type="text"] { width: 100%; padding: 10px; margin-bottom: 15px; box-sizing: border-box; background: var(--panel); color: var(--text); border: 1px solid var(--border); }
-        ul { list-style: none; padding: 0; margin: 0; }
-        li { padding: 10px; cursor: pointer; border-bottom: 1px solid var(--border); }
-        li:hover { background: #e9ecef; }
-        body.dark-mode li:hover { background: #3a3a3a; }
-        .selected-item { background: var(--panel); padding: 15px; margin-bottom: 10px; border: 1px solid var(--border); border-radius: 4px; }
-        button { background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #c82333; }
-        .btn-primary { background: #007bff; }
-        .btn-success { background: #28a745; }
-        h1, h2 { margin-top: 0; }
-        .gear-icon { position: absolute; top: 20px; right: 20px; font-size: 24px; cursor: pointer; background: none; border: none; color: var(--text); }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>World Time & Weather</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+/* ── Reset & tokens ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
-        .modal-content { background: var(--panel); padding: 25px; border-radius: 8px; width: 360px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); color: var(--text); }
+:root {
+  --bg: #f5f5f3;
+  --surface: #ffffff;
+  --surface2: #f0f0ee;
+  --border: rgba(0,0,0,.10);
+  --border-strong: rgba(0,0,0,.18);
+  --text: #1a1a1a;
+  --text2: #666;
+  --text3: #999;
+  --accent: #2563eb;
+  --accent-bg: #eff6ff;
+  --accent-text: #1d4ed8;
+  --hover: #f0f0ee;
+  --danger: #dc2626;
+  --danger-bg: #fef2f2;
+  --success: #16a34a;
+  --tag-bg: #e8f0fe;
+  --tag-text: #1d4ed8;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+  --radius: 8px;
+  --radius-lg: 12px;
+  --sidebar-width: 340px;
+  --header-h: 56px;
+}
 
-        .custom-label {
-            background: rgba(255, 255, 255, 0.95);
-            border: 2px solid #1e90ff;
-            border-radius: 4px;
-            padding: 6px 10px;
-            font-size: 13px;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-            white-space: nowrap;
-        }
-        body.dark-mode .custom-label { background: rgba(45,45,45,0.95); color: #fff; }
-        .weather-info { font-size: 0.95em; color: #666; margin-top: 4px; }
-        body.dark-mode .weather-info { color: #aaa; }
-    </style>
+body.dark {
+  --bg: #111;
+  --surface: #1c1c1c;
+  --surface2: #242424;
+  --border: rgba(255,255,255,.09);
+  --border-strong: rgba(255,255,255,.16);
+  --text: #f0f0f0;
+  --text2: #a0a0a0;
+  --text3: #666;
+  --accent: #3b82f6;
+  --accent-bg: #1e3a5f;
+  --accent-text: #93c5fd;
+  --hover: #2a2a2a;
+  --danger: #f87171;
+  --danger-bg: #3f1f1f;
+  --success: #4ade80;
+  --tag-bg: #1e3a5f;
+  --tag-text: #93c5fd;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Layout ─────────────────────────────────────────────── */
+.app { display: flex; height: 100vh; }
+
+/* ── Sidebar ─────────────────────────────────────────────── */
+#sidebar {
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+  transition: width .25s ease;
+}
+
+#sidebar.collapsed {
+  width: 0;
+  min-width: 0;
+  border-right: none;
+}
+
+.sidebar-top {
+  flex-shrink: 0;
+  padding: 14px 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.app-title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -.2px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.app-title-left { display: flex; align-items: center; gap: 6px; }
+.app-title-icon { font-size: 18px; line-height: 1; }
+
+.search-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.search-wrap {
+  position: relative;
+  flex: 1;
+}
+
+.search-wrap input {
+  width: 100%;
+  padding: 7px 28px 7px 9px;
+  font-size: 13px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface2);
+  color: var(--text);
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.search-wrap input::placeholder { color: var(--text3); }
+.search-wrap input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent); }
+.search-clear {
+  position: absolute;
+  right: 7px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text3);
+  font-size: 13px;
+  display: none;
+  line-height: 1;
+  padding: 2px;
+}
+.search-wrap input:not(:placeholder-shown) ~ .search-clear { display: block; }
+
+/* sort select */
+.sort-select {
+  padding: 6px 8px;
+  font-size: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface2);
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+}
+
+/* Tab bar */
+.tabs {
+  display: flex;
+  gap: 0;
+  margin: 0 -14px;
+}
+.tab {
+  flex: 1;
+  padding: 9px 4px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--text2);
+  border-bottom: 2px solid transparent;
+  transition: color .15s, border-color .15s;
+  white-space: nowrap;
+}
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Panels */
+.panel { flex: 1; overflow-y: auto; padding: 8px 10px; }
+.panel.hidden { display: none; }
+
+/* City browse list */
+#city-list { list-style: none; }
+#city-list li {
+  padding: 8px 8px;
+  cursor: pointer;
+  border-radius: var(--radius);
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  transition: background .1s;
+  border: 1px solid transparent;
+}
+#city-list li:hover:not(.is-added) { background: var(--hover); border-color: var(--border); }
+#city-list li.is-added { opacity: .4; cursor: default; }
+#city-list li .city-sub { font-size: 11px; color: var(--text2); }
+.tz-chip {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--tag-text);
+  background: var(--tag-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Selected city cards */
+.city-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 12px 12px 10px;
+  margin-bottom: 8px;
+  transition: border-color .15s;
+  position: relative;
+}
+.city-card:hover { border-color: var(--border-strong); }
+.city-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 2px; }
+.city-card-name { font-size: 13px; font-weight: 600; }
+.city-card-country { font-size: 11px; color: var(--text2); }
+.city-card-time {
+  font-size: 26px;
+  font-weight: 300;
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  margin: 6px 0 2px;
+}
+.city-card-date { font-size: 11px; color: var(--text2); margin-bottom: 8px; }
+.city-card-weather {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text2);
+  align-items: center;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  margin-top: 2px;
+}
+.city-card-weather .wicon { font-size: 16px; }
+.city-card-weather .wtemp { font-size: 14px; font-weight: 500; color: var(--text); }
+
+/* Remove button */
+.btn-remove {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text2);
+  padding: 3px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1.4;
+  transition: all .15s;
+  flex-shrink: 0;
+}
+.btn-remove:hover { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); }
+
+/* Loading spinner */
+.spinner {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border: 1.5px solid var(--border-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
+  vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Empty state */
+.empty {
+  text-align: center;
+  padding: 40px 16px;
+  color: var(--text3);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* Sidebar footer */
+.sidebar-footer {
+  flex-shrink: 0;
+  padding: 8px 10px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  background: var(--surface);
+}
+.btn-sm {
+  padding: 5px 9px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface2);
+  color: var(--text);
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.btn-sm:hover { background: var(--hover); border-color: var(--accent); color: var(--accent); }
+.btn-sm.danger:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-bg); }
+.btn-sm.icon { padding: 5px 7px; font-size: 14px; margin-left: auto; }
+
+/* ── Map toggle button ───────────────────────────────────── */
+#toggle-sidebar {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 1000;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: 6px 9px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--text);
+  box-shadow: var(--shadow);
+  transition: all .15s;
+}
+#toggle-sidebar:hover { background: var(--hover); }
+
+/* ── Map container ───────────────────────────────────────── */
+#map-wrap { flex: 1; position: relative; }
+#map { width: 100%; height: 100%; }
+
+/* Leaflet tooltip override */
+.city-tooltip {
+  background: var(--surface) !important;
+  border: 1.5px solid var(--accent) !important;
+  border-radius: 6px !important;
+  padding: 5px 8px !important;
+  font-size: 11px !important;
+  font-family: inherit !important;
+  color: var(--text) !important;
+  box-shadow: var(--shadow) !important;
+  white-space: nowrap;
+  line-height: 1.5;
+  pointer-events: none;
+}
+.city-tooltip::before { display: none !important; }
+.city-tooltip-name { font-weight: 600; font-size: 12px; }
+.city-tooltip-line { color: var(--text2); font-size: 11px; }
+
+/* ── Modal overlay ───────────────────────────────────────── */
+.modal-overlay {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  z-index: 5000;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 22px 22px 18px;
+  width: 310px;
+  max-height: 90vh;
+  overflow-y: auto;
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 8px 32px rgba(0,0,0,.18);
+}
+.modal h2 { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+.pref-group { margin-bottom: 13px; }
+.pref-group label { display: block; font-size: 11px; font-weight: 500; color: var(--text2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .4px; }
+.pref-group select { width: 100%; padding: 7px 9px; font-size: 13px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface2); color: var(--text); outline: none; }
+.pref-group select:focus { border-color: var(--accent); }
+.check-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer; }
+.check-row input { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+.check-row span { font-size: 13px; color: var(--text); }
+.modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; border-top: 1px solid var(--border); padding-top: 14px; }
+.btn-primary { padding: 7px 16px; font-size: 13px; font-weight: 500; border-radius: 6px; border: none; background: var(--accent); color: #fff; cursor: pointer; transition: opacity .15s; }
+.btn-primary:hover { opacity: .88; }
+.btn-secondary { padding: 7px 14px; font-size: 13px; border-radius: 6px; border: 1px solid var(--border-strong); background: var(--surface2); color: var(--text); cursor: pointer; transition: background .15s; }
+.btn-secondary:hover { background: var(--hover); }
+
+/* ── Status bar ──────────────────────────────────────────── */
+#status-bar {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  z-index: 1000;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 5px 10px;
+  font-size: 11px;
+  color: var(--text2);
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+#status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+  flex-shrink: 0;
+  transition: background .3s;
+}
+#status-dot.loading { background: var(--accent); animation: pulse 1s infinite; }
+#status-dot.error { background: var(--danger); }
+@keyframes pulse { 0%,100%{opacity:.3}50%{opacity:1} }
+
+/* ── Clock widget overlay (right side of map) ────────────── */
+#clock-panel {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+}
+.clock-mini {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 10px;
+  box-shadow: var(--shadow);
+  font-size: 11px;
+  line-height: 1.4;
+  min-width: 120px;
+  pointer-events: auto;
+}
+.clock-mini-city { font-weight: 600; font-size: 11px; color: var(--text); }
+.clock-mini-time { font-size: 16px; font-weight: 300; letter-spacing: -.5px; font-variant-numeric: tabular-nums; color: var(--text); }
+.clock-mini-meta { font-size: 10px; color: var(--text2); }
+
+/* scrollbar slim */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+</style>
 </head>
 <body>
-    <div class="container">
-        <div id="sidebar">
-            <button class="gear-icon" onclick="openPreferences()">⚙</button>
-            <h1>World Time & Weather Map</h1>
-            <h2>Select Cities</h2>
-            <input type="text" id="search" placeholder="Search cities or countries...">
-            <ul id="city-list"></ul>
 
-            <div style="margin: 15px 0;">
-                <button class="btn-primary" onclick="exportCities()" style="margin-right:8px;">Export Cities</button>
-                <button class="btn-primary" onclick="document.getElementById('import-file').click()">Import Cities</button>
-                <input type="file" id="import-file" accept=".json" style="display:none" onchange="importCities(event)">
-            </div>
-
-            <h2>Selected Cities</h2>
-            <div id="selected-list"></div>
+<div class="app" id="app">
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div class="sidebar-top">
+      <div class="app-title">
+        <div class="app-title-left">
+          <span class="app-title-icon">🌍</span>
+          World Time &amp; Weather
         </div>
-        <div id="map"></div>
+      </div>
+      <div class="search-row">
+        <div class="search-wrap">
+          <input type="text" id="search" placeholder="Search cities or countries…" autocomplete="off">
+          <button class="search-clear" onclick="clearSearch()">✕</button>
+        </div>
+        <select class="sort-select" id="sort-select" onchange="renderBrowseList()">
+          <option value="name">A–Z</option>
+          <option value="region">Region</option>
+        </select>
+      </div>
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('browse',this)" id="tab-browse">Browse</button>
+        <button class="tab" onclick="switchTab('selected',this)" id="tab-selected">Selected <span id="sel-badge"></span></button>
+      </div>
     </div>
 
-    <!-- Preferences Modal -->
-    <div id="preferences-modal" class="modal">
-        <div class="modal-content">
-            <h2>Preferences</h2>
-            <label>Temperature Unit</label>
-            <select id="temp-unit">
-                <option value="celsius">Celsius (°C)</option>
-                <option value="fahrenheit">Fahrenheit (°F)</option>
-            </select>
-
-            <label>Time Format</label>
-            <select id="time-format">
-                <option value="12">12-hour</option>
-                <option value="24">24-hour</option>
-            </select>
-
-            <label>Weather Refresh Interval</label>
-            <select id="refresh-interval">
-                <option value="300000">5 minutes</option>
-                <option value="600000">10 minutes</option>
-                <option value="900000">15 minutes</option>
-            </select>
-
-            <label><input type="checkbox" id="auto-fit"> Auto-fit map when adding cities</label>
-            <label><input type="checkbox" id="show-icons"> Show weather icons on map</label>
-            <label><input type="checkbox" id="show-daynight" checked> Show Day/Night Overlay</label>
-            <label><input type="checkbox" id="dark-mode"> Enable Dark Mode</label>
-
-            <div style="margin-top: 20px; text-align: right;">
-                <button onclick="savePreferences()" class="btn-success" style="margin-right:8px;">Save</button>
-                <button onclick="closePreferences()">Cancel</button>
-            </div>
-        </div>
+    <div id="panel-browse" class="panel">
+      <ul id="city-list"></ul>
     </div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-        const citiesData = [
-            { name: "New York", country: "United States", lat: 40.7128, lng: -74.0060, tz: "America/New_York" },
-            { name: "London", country: "United Kingdom", lat: 51.5074, lng: -0.1278, tz: "Europe/London" },
-            { name: "Paris", country: "France", lat: 48.8566, lng: 2.3522, tz: "Europe/Paris" },
-            { name: "Tokyo", country: "Japan", lat: 35.6895, lng: 139.6917, tz: "Asia/Tokyo" },
-            { name: "Sydney", country: "Australia", lat: -33.8688, lng: 151.2093, tz: "Australia/Sydney" },
-            { name: "Moscow", country: "Russia", lat: 55.7558, lng: 37.6173, tz: "Europe/Moscow" },
-            { name: "Beijing", country: "China", lat: 39.9042, lng: 116.4074, tz: "Asia/Shanghai" },
-            { name: "Cape Town", country: "South Africa", lat: -33.9249, lng: 18.4241, tz: "Africa/Johannesburg" },
-            { name: "Rio de Janeiro", country: "Brazil", lat: -22.9068, lng: -43.1729, tz: "America/Sao_Paulo" },
-            { name: "Los Angeles", country: "United States", lat: 34.0522, lng: -118.2437, tz: "America/Los_Angeles" }
-        ];
+    <div id="panel-selected" class="panel hidden">
+      <div id="selected-list"></div>
+    </div>
 
-        let map, selectedCities = [], cityLayers = {}, terminatorLayer = null;
-        let preferences = {
-            tempUnit: "celsius", timeFormat: "12", showIcons: true,
-            darkMode: false, autoFit: true, refreshInterval: 600000,
-            showDayNight: true
-        };
-        let weatherRefreshTimer = null;
+    <div class="sidebar-footer">
+      <button class="btn-sm" onclick="exportCities()" title="Export selected cities as JSON">↑ Export</button>
+      <button class="btn-sm" onclick="document.getElementById('import-input').click()" title="Import cities from JSON">↓ Import</button>
+      <input type="file" id="import-input" accept=".json" style="display:none" onchange="importCities(event)">
+      <button class="btn-sm danger" onclick="clearAll()">Clear all</button>
+      <button class="btn-sm icon" onclick="openPrefs()" title="Preferences">⚙</button>
+    </div>
+  </div>
 
-        const weatherCodeMap = {
-            0: "☀️ Clear sky", 1: "🌤️ Mainly clear", 2: "⛅ Partly cloudy", 3: "☁️ Overcast",
-            45: "🌫️ Fog", 51: "🌧️ Light drizzle", 61: "🌦️ Slight rain", 71: "❄️ Slight snow",
-            80: "🌧️ Rain showers", 95: "⛈️ Thunderstorm"
-        };
+  <!-- Map -->
+  <div id="map-wrap">
+    <button id="toggle-sidebar" onclick="toggleSidebar()" title="Toggle sidebar">☰</button>
+    <div id="map"></div>
+    <div id="clock-panel"></div>
+    <div id="status-bar">
+      <div id="status-dot"></div>
+      <span id="status-text">Ready</span>
+    </div>
+  </div>
+</div>
 
-        function loadPreferences() {
-            const saved = localStorage.getItem("worldMapPreferences");
-            if (saved) preferences = JSON.parse(saved);
-            applyTheme();
+<!-- Preferences Modal -->
+<div class="modal-overlay" id="prefs-overlay">
+  <div class="modal">
+    <h2>Preferences</h2>
+
+    <div class="pref-group">
+      <label>Temperature unit</label>
+      <select id="p-temp">
+        <option value="celsius">Celsius (°C)</option>
+        <option value="fahrenheit">Fahrenheit (°F)</option>
+      </select>
+    </div>
+
+    <div class="pref-group">
+      <label>Time format</label>
+      <select id="p-timefmt">
+        <option value="12">12-hour (3:45 PM)</option>
+        <option value="24">24-hour (15:45)</option>
+      </select>
+    </div>
+
+    <div class="pref-group">
+      <label>Map style</label>
+      <select id="p-mapstyle">
+        <option value="osm">OpenStreetMap (default)</option>
+        <option value="topo">OpenTopoMap</option>
+        <option value="dark">CartoDB Dark</option>
+        <option value="light">CartoDB Light</option>
+      </select>
+    </div>
+
+    <div class="pref-group">
+      <label>Weather auto-refresh</label>
+      <select id="p-refresh">
+        <option value="300000">Every 5 minutes</option>
+        <option value="600000">Every 10 minutes</option>
+        <option value="900000">Every 15 minutes</option>
+        <option value="1800000">Every 30 minutes</option>
+      </select>
+    </div>
+
+    <label class="check-row"><input type="checkbox" id="p-daynight"><span>Day/night overlay</span></label>
+    <label class="check-row"><input type="checkbox" id="p-icons"><span>Weather icons on map labels</span></label>
+    <label class="check-row"><input type="checkbox" id="p-clock"><span>Clock panel on map</span></label>
+    <label class="check-row"><input type="checkbox" id="p-autofit"><span>Auto-fit map when adding cities</span></label>
+    <label class="check-row"><input type="checkbox" id="p-dark"><span>Dark mode</span></label>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closePrefs()">Cancel</button>
+      <button class="btn-primary" onclick="savePrefs()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts: Leaflet first, then terminator which depends on it -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/@joergdietrich/leaflet.terminator@1.0.0/terminator.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════
+   DATA  –  100 cities, deduplicated, sorted by name
+═══════════════════════════════════════════════════════ */
+const ALL_CITIES = [
+  {name:"Accra",country:"Ghana",region:"Africa",lat:5.6037,lng:-0.187,tz:"Africa/Accra"},
+  {name:"Addis Ababa",country:"Ethiopia",region:"Africa",lat:9.0319,lng:38.7468,tz:"Africa/Addis_Ababa"},
+  {name:"Amsterdam",country:"Netherlands",region:"Europe",lat:52.3676,lng:4.9041,tz:"Europe/Amsterdam"},
+  {name:"Anchorage",country:"United States",region:"North America",lat:61.2181,lng:-149.9003,tz:"America/Anchorage"},
+  {name:"Athens",country:"Greece",region:"Europe",lat:37.9838,lng:23.7275,tz:"Europe/Athens"},
+  {name:"Auckland",country:"New Zealand",region:"Oceania",lat:-36.8485,lng:174.7633,tz:"Pacific/Auckland"},
+  {name:"Baghdad",country:"Iraq",region:"Middle East",lat:33.3152,lng:44.3661,tz:"Asia/Baghdad"},
+  {name:"Bangkok",country:"Thailand",region:"Asia",lat:13.7563,lng:100.5018,tz:"Asia/Bangkok"},
+  {name:"Barcelona",country:"Spain",region:"Europe",lat:41.3851,lng:2.1734,tz:"Europe/Madrid"},
+  {name:"Beijing",country:"China",region:"Asia",lat:39.9042,lng:116.4074,tz:"Asia/Shanghai"},
+  {name:"Berlin",country:"Germany",region:"Europe",lat:52.52,lng:13.405,tz:"Europe/Berlin"},
+  {name:"Bogotá",country:"Colombia",region:"South America",lat:4.711,lng:-74.0721,tz:"America/Bogota"},
+  {name:"Brisbane",country:"Australia",region:"Oceania",lat:-27.4698,lng:153.0251,tz:"Australia/Brisbane"},
+  {name:"Brussels",country:"Belgium",region:"Europe",lat:50.8503,lng:4.3517,tz:"Europe/Brussels"},
+  {name:"Bucharest",country:"Romania",region:"Europe",lat:44.4268,lng:26.1025,tz:"Europe/Bucharest"},
+  {name:"Budapest",country:"Hungary",region:"Europe",lat:47.4979,lng:19.0402,tz:"Europe/Budapest"},
+  {name:"Buenos Aires",country:"Argentina",region:"South America",lat:-34.6037,lng:-58.3816,tz:"America/Argentina/Buenos_Aires"},
+  {name:"Cairo",country:"Egypt",region:"Africa",lat:30.0444,lng:31.2357,tz:"Africa/Cairo"},
+  {name:"Calgary",country:"Canada",region:"North America",lat:51.0447,lng:-114.0719,tz:"America/Edmonton"},
+  {name:"Cape Town",country:"South Africa",region:"Africa",lat:-33.9249,lng:18.4241,tz:"Africa/Johannesburg"},
+  {name:"Caracas",country:"Venezuela",region:"South America",lat:10.4806,lng:-66.9036,tz:"America/Caracas"},
+  {name:"Casablanca",country:"Morocco",region:"Africa",lat:33.5731,lng:-7.5898,tz:"Africa/Casablanca"},
+  {name:"Chicago",country:"United States",region:"North America",lat:41.8781,lng:-87.6298,tz:"America/Chicago"},
+  {name:"Colombo",country:"Sri Lanka",region:"Asia",lat:6.9271,lng:79.8612,tz:"Asia/Colombo"},
+  {name:"Copenhagen",country:"Denmark",region:"Europe",lat:55.6761,lng:12.5683,tz:"Europe/Copenhagen"},
+  {name:"Dakar",country:"Senegal",region:"Africa",lat:14.7167,lng:-17.4677,tz:"Africa/Dakar"},
+  {name:"Dallas",country:"United States",region:"North America",lat:32.7767,lng:-96.797,tz:"America/Chicago"},
+  {name:"Delhi",country:"India",region:"Asia",lat:28.6139,lng:77.209,tz:"Asia/Kolkata"},
+  {name:"Denver",country:"United States",region:"North America",lat:39.7392,lng:-104.9903,tz:"America/Denver"},
+  {name:"Dhaka",country:"Bangladesh",region:"Asia",lat:23.8103,lng:90.4125,tz:"Asia/Dhaka"},
+  {name:"Dublin",country:"Ireland",region:"Europe",lat:53.3498,lng:-6.2603,tz:"Europe/Dublin"},
+  {name:"Dubai",country:"UAE",region:"Middle East",lat:25.2048,lng:55.2708,tz:"Asia/Dubai"},
+  {name:"Hanoi",country:"Vietnam",region:"Asia",lat:21.0285,lng:105.8542,tz:"Asia/Bangkok"},
+  {name:"Havana",country:"Cuba",region:"North America",lat:23.1136,lng:-82.3666,tz:"America/Havana"},
+  {name:"Helsinki",country:"Finland",region:"Europe",lat:60.1699,lng:24.9384,tz:"Europe/Helsinki"},
+  {name:"Ho Chi Minh City",country:"Vietnam",region:"Asia",lat:10.8231,lng:106.6297,tz:"Asia/Ho_Chi_Minh"},
+  {name:"Hong Kong",country:"China",region:"Asia",lat:22.3193,lng:114.1694,tz:"Asia/Hong_Kong"},
+  {name:"Honolulu",country:"United States",region:"Oceania",lat:21.3069,lng:-157.8583,tz:"Pacific/Honolulu"},
+  {name:"Houston",country:"United States",region:"North America",lat:29.7604,lng:-95.3698,tz:"America/Chicago"},
+  {name:"Istanbul",country:"Turkey",region:"Europe",lat:41.0082,lng:28.9784,tz:"Europe/Istanbul"},
+  {name:"Jakarta",country:"Indonesia",region:"Asia",lat:-6.2088,lng:106.8456,tz:"Asia/Jakarta"},
+  {name:"Johannesburg",country:"South Africa",region:"Africa",lat:-26.2041,lng:28.0473,tz:"Africa/Johannesburg"},
+  {name:"Karachi",country:"Pakistan",region:"Asia",lat:24.8607,lng:67.0011,tz:"Asia/Karachi"},
+  {name:"Kathmandu",country:"Nepal",region:"Asia",lat:27.7172,lng:85.324,tz:"Asia/Kathmandu"},
+  {name:"Kiev",country:"Ukraine",region:"Europe",lat:50.4501,lng:30.5234,tz:"Europe/Kiev"},
+  {name:"Kuala Lumpur",country:"Malaysia",region:"Asia",lat:3.139,lng:101.6869,tz:"Asia/Kuala_Lumpur"},
+  {name:"Lagos",country:"Nigeria",region:"Africa",lat:6.5244,lng:3.3792,tz:"Africa/Lagos"},
+  {name:"Lahore",country:"Pakistan",region:"Asia",lat:31.5497,lng:74.3436,tz:"Asia/Karachi"},
+  {name:"Lima",country:"Peru",region:"South America",lat:-12.0464,lng:-77.0428,tz:"America/Lima"},
+  {name:"Lisbon",country:"Portugal",region:"Europe",lat:38.7223,lng:-9.1393,tz:"Europe/Lisbon"},
+  {name:"London",country:"United Kingdom",region:"Europe",lat:51.5074,lng:-0.1278,tz:"Europe/London"},
+  {name:"Los Angeles",country:"United States",region:"North America",lat:34.0522,lng:-118.2437,tz:"America/Los_Angeles"},
+  {name:"Luanda",country:"Angola",region:"Africa",lat:-8.8368,lng:13.2343,tz:"Africa/Luanda"},
+  {name:"Madrid",country:"Spain",region:"Europe",lat:40.4168,lng:-3.7038,tz:"Europe/Madrid"},
+  {name:"Manila",country:"Philippines",region:"Asia",lat:14.5995,lng:120.9842,tz:"Asia/Manila"},
+  {name:"Melbourne",country:"Australia",region:"Oceania",lat:-37.8136,lng:144.9631,tz:"Australia/Melbourne"},
+  {name:"Mexico City",country:"Mexico",region:"North America",lat:19.4326,lng:-99.1332,tz:"America/Mexico_City"},
+  {name:"Miami",country:"United States",region:"North America",lat:25.7617,lng:-80.1918,tz:"America/New_York"},
+  {name:"Milan",country:"Italy",region:"Europe",lat:45.4642,lng:9.19,tz:"Europe/Rome"},
+  {name:"Minsk",country:"Belarus",region:"Europe",lat:53.9045,lng:27.5615,tz:"Europe/Minsk"},
+  {name:"Montreal",country:"Canada",region:"North America",lat:45.5017,lng:-73.5673,tz:"America/Toronto"},
+  {name:"Moscow",country:"Russia",region:"Europe",lat:55.7558,lng:37.6173,tz:"Europe/Moscow"},
+  {name:"Mumbai",country:"India",region:"Asia",lat:19.076,lng:72.8777,tz:"Asia/Kolkata"},
+  {name:"Nairobi",country:"Kenya",region:"Africa",lat:-1.2921,lng:36.8219,tz:"Africa/Nairobi"},
+  {name:"New York",country:"United States",region:"North America",lat:40.7128,lng:-74.006,tz:"America/New_York"},
+  {name:"Oslo",country:"Norway",region:"Europe",lat:59.9139,lng:10.7522,tz:"Europe/Oslo"},
+  {name:"Paris",country:"France",region:"Europe",lat:48.8566,lng:2.3522,tz:"Europe/Paris"},
+  {name:"Perth",country:"Australia",region:"Oceania",lat:-31.9505,lng:115.8605,tz:"Australia/Perth"},
+  {name:"Phoenix",country:"United States",region:"North America",lat:33.4484,lng:-112.074,tz:"America/Phoenix"},
+  {name:"Prague",country:"Czech Republic",region:"Europe",lat:50.0755,lng:14.4378,tz:"Europe/Prague"},
+  {name:"Reykjavik",country:"Iceland",region:"Europe",lat:64.1355,lng:-21.8954,tz:"Atlantic/Reykjavik"},
+  {name:"Rio de Janeiro",country:"Brazil",region:"South America",lat:-22.9068,lng:-43.1729,tz:"America/Sao_Paulo"},
+  {name:"Riyadh",country:"Saudi Arabia",region:"Middle East",lat:24.7136,lng:46.6753,tz:"Asia/Riyadh"},
+  {name:"Rome",country:"Italy",region:"Europe",lat:41.9028,lng:12.4964,tz:"Europe/Rome"},
+  {name:"San Francisco",country:"United States",region:"North America",lat:37.7749,lng:-122.4194,tz:"America/Los_Angeles"},
+  {name:"Santiago",country:"Chile",region:"South America",lat:-33.4489,lng:-70.6693,tz:"America/Santiago"},
+  {name:"São Paulo",country:"Brazil",region:"South America",lat:-23.5505,lng:-46.6333,tz:"America/Sao_Paulo"},
+  {name:"Seattle",country:"United States",region:"North America",lat:47.6062,lng:-122.3321,tz:"America/Los_Angeles"},
+  {name:"Seoul",country:"South Korea",region:"Asia",lat:37.5665,lng:126.978,tz:"Asia/Seoul"},
+  {name:"Shanghai",country:"China",region:"Asia",lat:31.2304,lng:121.4737,tz:"Asia/Shanghai"},
+  {name:"Singapore",country:"Singapore",region:"Asia",lat:1.3521,lng:103.8198,tz:"Asia/Singapore"},
+  {name:"Sofia",country:"Bulgaria",region:"Europe",lat:42.6977,lng:23.3219,tz:"Europe/Sofia"},
+  {name:"Stockholm",country:"Sweden",region:"Europe",lat:59.3293,lng:18.0686,tz:"Europe/Stockholm"},
+  {name:"Sydney",country:"Australia",region:"Oceania",lat:-33.8688,lng:151.2093,tz:"Australia/Sydney"},
+  {name:"Taipei",country:"Taiwan",region:"Asia",lat:25.0329,lng:121.5654,tz:"Asia/Taipei"},
+  {name:"Tashkent",country:"Uzbekistan",region:"Asia",lat:41.2995,lng:69.2401,tz:"Asia/Tashkent"},
+  {name:"Tehran",country:"Iran",region:"Middle East",lat:35.6892,lng:51.389,tz:"Asia/Tehran"},
+  {name:"Tel Aviv",country:"Israel",region:"Middle East",lat:32.0853,lng:34.7818,tz:"Asia/Jerusalem"},
+  {name:"Tokyo",country:"Japan",region:"Asia",lat:35.6895,lng:139.6917,tz:"Asia/Tokyo"},
+  {name:"Toronto",country:"Canada",region:"North America",lat:43.6511,lng:-79.3832,tz:"America/Toronto"},
+  {name:"Tunis",country:"Tunisia",region:"Africa",lat:36.8065,lng:10.1815,tz:"Africa/Tunis"},
+  {name:"Vancouver",country:"Canada",region:"North America",lat:49.2827,lng:-123.1207,tz:"America/Vancouver"},
+  {name:"Vienna",country:"Austria",region:"Europe",lat:48.2082,lng:16.3738,tz:"Europe/Vienna"},
+  {name:"Warsaw",country:"Poland",region:"Europe",lat:52.2297,lng:21.0122,tz:"Europe/Warsaw"},
+  {name:"Washington DC",country:"United States",region:"North America",lat:38.9072,lng:-77.0369,tz:"America/New_York"},
+  {name:"Yangon",country:"Myanmar",region:"Asia",lat:16.8661,lng:96.1951,tz:"Asia/Rangoon"},
+  {name:"Zurich",country:"Switzerland",region:"Europe",lat:47.3769,lng:8.5417,tz:"Europe/Zurich"},
+];
+
+/* ══════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════ */
+let map, tileLayer, terminator;
+let selectedCities = [];       // enriched city objects
+let cityLayers = {};           // name → { marker, tooltip }
+let weatherRefreshTimer = null;
+let clockTimer = null;
+let sidebarOpen = true;
+
+const DEFAULT_PREFS = {
+  tempUnit: "celsius",
+  timeFormat: "12",
+  mapStyle: "osm",
+  refreshInterval: 600000,
+  showDayNight: true,
+  showIcons: true,
+  showClock: true,
+  autoFit: true,
+  darkMode: false,
+};
+
+let prefs = { ...DEFAULT_PREFS };
+
+/* ══════════════════════════════════════════════════════
+   WEATHER CODE MAP  (WMO weather interpretation codes)
+═══════════════════════════════════════════════════════ */
+const WMO = {
+  0:  { icon:"☀️", label:"Clear sky" },
+  1:  { icon:"🌤️", label:"Mainly clear" },
+  2:  { icon:"⛅", label:"Partly cloudy" },
+  3:  { icon:"☁️", label:"Overcast" },
+  45: { icon:"🌫️", label:"Fog" },
+  48: { icon:"🌫️", label:"Icy fog" },
+  51: { icon:"🌦️", label:"Light drizzle" },
+  53: { icon:"🌧️", label:"Drizzle" },
+  55: { icon:"🌧️", label:"Heavy drizzle" },
+  61: { icon:"🌦️", label:"Light rain" },
+  63: { icon:"🌧️", label:"Rain" },
+  65: { icon:"🌧️", label:"Heavy rain" },
+  66: { icon:"🌨️", label:"Freezing rain" },
+  67: { icon:"🌨️", label:"Heavy freezing rain" },
+  71: { icon:"❄️", label:"Light snow" },
+  73: { icon:"❄️", label:"Snow" },
+  75: { icon:"❄️", label:"Heavy snow" },
+  77: { icon:"🌨️", label:"Snow grains" },
+  80: { icon:"🌧️", label:"Showers" },
+  81: { icon:"🌧️", label:"Heavy showers" },
+  82: { icon:"🌧️", label:"Violent showers" },
+  85: { icon:"🌨️", label:"Snow showers" },
+  86: { icon:"❄️", label:"Heavy snow showers" },
+  95: { icon:"⛈️", label:"Thunderstorm" },
+  96: { icon:"⛈️", label:"Thunderstorm+hail" },
+  99: { icon:"⛈️", label:"Heavy thunderstorm" },
+};
+
+function wmo(code) {
+  return WMO[code] || { icon:"🌡️", label:"Unknown" };
+}
+
+/* ══════════════════════════════════════════════════════
+   PREFERENCES
+═══════════════════════════════════════════════════════ */
+function loadPrefs() {
+  try {
+    const s = localStorage.getItem("wtw_prefs_v2");
+    if (s) prefs = { ...DEFAULT_PREFS, ...JSON.parse(s) };
+  } catch (_) {}
+  applyTheme();
+}
+
+function applyTheme() {
+  document.body.classList.toggle("dark", !!prefs.darkMode);
+}
+
+function openPrefs() {
+  document.getElementById("p-temp").value = prefs.tempUnit;
+  document.getElementById("p-timefmt").value = prefs.timeFormat;
+  document.getElementById("p-mapstyle").value = prefs.mapStyle;
+  document.getElementById("p-refresh").value = prefs.refreshInterval;
+  document.getElementById("p-daynight").checked = prefs.showDayNight;
+  document.getElementById("p-icons").checked = prefs.showIcons;
+  document.getElementById("p-clock").checked = prefs.showClock;
+  document.getElementById("p-autofit").checked = prefs.autoFit;
+  document.getElementById("p-dark").checked = prefs.darkMode;
+  document.getElementById("prefs-overlay").classList.add("open");
+}
+
+function closePrefs() {
+  document.getElementById("prefs-overlay").classList.remove("open");
+}
+
+function savePrefs() {
+  const oldMapStyle = prefs.mapStyle;
+  prefs.tempUnit       = document.getElementById("p-temp").value;
+  prefs.timeFormat     = document.getElementById("p-timefmt").value;
+  prefs.mapStyle       = document.getElementById("p-mapstyle").value;
+  prefs.refreshInterval = parseInt(document.getElementById("p-refresh").value);
+  prefs.showDayNight   = document.getElementById("p-daynight").checked;
+  prefs.showIcons      = document.getElementById("p-icons").checked;
+  prefs.showClock      = document.getElementById("p-clock").checked;
+  prefs.autoFit        = document.getElementById("p-autofit").checked;
+  prefs.darkMode       = document.getElementById("p-dark").checked;
+
+  localStorage.setItem("wtw_prefs_v2", JSON.stringify(prefs));
+  applyTheme();
+  closePrefs();
+
+  if (prefs.mapStyle !== oldMapStyle) applyMapStyle();
+  updateTerminator();
+  refreshAllMapLabels();
+  renderSelectedList();
+  renderClockPanel();
+  startWeatherRefresh();
+}
+
+/* ══════════════════════════════════════════════════════
+   MAP SETUP
+═══════════════════════════════════════════════════════ */
+const TILE_URLS = {
+  osm:   ["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", "© OpenStreetMap contributors"],
+  topo:  ["https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", "© OpenTopoMap"],
+  dark:  ["https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", "© CartoDB"],
+  light: ["https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", "© CartoDB"],
+};
+
+function initMap() {
+  map = L.map("map", { zoomControl: false }).setView([20, 10], 2);
+  L.control.zoom({ position: "bottomleft" }).addTo(map);
+
+  const [url, attr] = TILE_URLS[prefs.mapStyle] || TILE_URLS.osm;
+  tileLayer = L.tileLayer(url, { attribution: attr, maxZoom: 18 }).addTo(map);
+
+  terminator = L.terminator({ fillOpacity: 0.28, fillColor: "#000" });
+  if (prefs.showDayNight) terminator.addTo(map);
+
+  // Click on map to deselect / close popups
+  map.on("click", () => map.closePopup());
+}
+
+function applyMapStyle() {
+  if (tileLayer) map.removeLayer(tileLayer);
+  const [url, attr] = TILE_URLS[prefs.mapStyle] || TILE_URLS.osm;
+  tileLayer = L.tileLayer(url, { attribution: attr, maxZoom: 18 }).addTo(map);
+  // Keep terminator on top
+  if (prefs.showDayNight && map.hasLayer(terminator)) {
+    terminator.remove(); terminator.addTo(map);
+  }
+}
+
+function updateTerminator() {
+  if (!terminator) return;
+  if (prefs.showDayNight) {
+    terminator.setTime(new Date());
+    if (!map.hasLayer(terminator)) terminator.addTo(map);
+  } else {
+    if (map.hasLayer(terminator)) map.removeLayer(terminator);
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   TIME HELPERS
+═══════════════════════════════════════════════════════ */
+function localTime(tz) {
+  try {
+    const opts = { timeZone: tz, hour: "numeric", minute: "2-digit" };
+    if (prefs.timeFormat === "24") opts.hour12 = false;
+    return new Intl.DateTimeFormat("en-US", opts).format(new Date());
+  } catch (_) { return "—"; }
+}
+
+function localDate(tz) {
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: tz, weekday: "short", month: "short", day: "numeric"
+    }).format(new Date());
+  } catch (_) { return ""; }
+}
+
+function utcOffset(tz) {
+  try {
+    const s = new Intl.DateTimeFormat("en", {
+      timeZone: tz, timeZoneName: "shortOffset"
+    }).formatToParts(new Date()).find(p => p.type === "timeZoneName");
+    return s ? s.value : "";
+  } catch (_) { return ""; }
+}
+
+/* ══════════════════════════════════════════════════════
+   WEATHER API  (Open-Meteo, free, no key needed)
+═══════════════════════════════════════════════════════ */
+function setStatus(state, text) {
+  document.getElementById("status-dot").className = state === "loading" ? "loading" :
+    state === "error" ? "error" : "";
+  document.getElementById("status-text").textContent = text;
+}
+
+async function fetchWeather(lat, lng) {
+  const unit = prefs.tempUnit === "fahrenheit" ? "fahrenheit" : "celsius";
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}` +
+    `&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m,apparent_temperature` +
+    `&temperature_unit=${unit}&timezone=auto&wind_speed_unit=kmh`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    const c = data.current;
+    const w = wmo(c.weather_code);
+    return {
+      temperature: Math.round(c.temperature_2m),
+      feelsLike:   Math.round(c.apparent_temperature),
+      icon:        w.icon,
+      condition:   w.label,
+      wind:        Math.round(c.wind_speed_10m),
+      humidity:    c.relative_humidity_2m,
+      code:        c.weather_code,
+      unit:        prefs.tempUnit,
+    };
+  } catch (e) {
+    return { temperature: null, feelsLike: null, icon: "❓", condition: "Unavailable", wind: null, humidity: null };
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   MAP MARKERS & TOOLTIPS
+═══════════════════════════════════════════════════════ */
+function buildTooltipHTML(city) {
+  const time = localTime(city.tz);
+  const temp = city.weather && city.weather.temperature !== null
+    ? `${city.weather.temperature}°${prefs.tempUnit === "fahrenheit" ? "F" : "C"}` : "";
+  const icon = prefs.showIcons && city.weather ? city.weather.icon : "";
+  return `<div class="city-tooltip">
+    <div class="city-tooltip-name">${city.name}</div>
+    <div class="city-tooltip-line">${icon ? icon + " " : ""}${time}${temp ? " · " + temp : ""}</div>
+  </div>`;
+}
+
+function refreshAllMapLabels() {
+  selectedCities.forEach(city => {
+    const layer = cityLayers[city.name];
+    if (layer) layer.tooltip.setContent(buildTooltipHTML(city));
+  });
+}
+
+async function addCity(city) {
+  if (selectedCities.find(c => c.name === city.name)) return;
+
+  const enriched = { ...city, weather: null };
+  selectedCities.push(enriched);
+
+  // Marker
+  const marker = L.circleMarker([city.lat, city.lng], {
+    radius: 8, fillColor: "#2563eb", color: "#fff",
+    weight: 2.5, opacity: 1, fillOpacity: 0.9,
+  }).addTo(map);
+
+  // Tooltip (permanent label)
+  const tooltip = L.tooltip({
+    permanent: true, direction: "right", offset: [12, 0],
+    className: "city-tooltip-wrapper", interactive: false,
+  }).setLatLng([city.lat, city.lng]).addTo(map);
+
+  cityLayers[city.name] = { marker, tooltip };
+  tooltip.setContent(buildTooltipHTML(enriched));
+
+  // Click marker → jump to Selected tab and scroll to card
+  marker.on("click", () => {
+    switchTab("selected", document.getElementById("tab-selected"));
+    setTimeout(() => {
+      const el = document.getElementById(`card-${slugify(city.name)}`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 50);
+  });
+
+  renderBrowseList();
+  renderSelectedList();
+  renderClockPanel();
+  if (prefs.autoFit) fitMap();
+
+  // Fetch weather asynchronously
+  setStatus("loading", `Fetching weather…`);
+  const weather = await fetchWeather(city.lat, city.lng);
+  enriched.weather = weather;
+  tooltip.setContent(buildTooltipHTML(enriched));
+  renderSelectedList();
+  renderClockPanel();
+  setStatus("ok", `Updated ${new Date().toLocaleTimeString()}`);
+}
+
+function removeCity(name) {
+  const idx = selectedCities.findIndex(c => c.name === name);
+  if (idx === -1) return;
+  selectedCities.splice(idx, 1);
+  if (cityLayers[name]) {
+    map.removeLayer(cityLayers[name].marker);
+    map.removeLayer(cityLayers[name].tooltip);
+    delete cityLayers[name];
+  }
+  renderBrowseList();
+  renderSelectedList();
+  renderClockPanel();
+  updateSelBadge();
+}
+
+function clearAll() {
+  if (!selectedCities.length) return;
+  if (!confirm(`Remove all ${selectedCities.length} selected cities?`)) return;
+  [...selectedCities].forEach(c => removeCity(c.name));
+}
+
+function fitMap() {
+  if (!selectedCities.length) return;
+  const bounds = L.latLngBounds(selectedCities.map(c => [c.lat, c.lng]));
+  map.fitBounds(bounds, { padding: [60, 60], maxZoom: 8 });
+}
+
+/* ══════════════════════════════════════════════════════
+   RENDER  –  Browse list
+═══════════════════════════════════════════════════════ */
+function renderBrowseList() {
+  const term = document.getElementById("search").value.toLowerCase().trim();
+  const sort = document.getElementById("sort-select").value;
+
+  let list = ALL_CITIES.filter(c =>
+    !term ||
+    c.name.toLowerCase().includes(term) ||
+    c.country.toLowerCase().includes(term) ||
+    c.region.toLowerCase().includes(term)
+  );
+
+  if (sort === "region") {
+    list = list.sort((a, b) => a.region.localeCompare(b.region) || a.name.localeCompare(b.name));
+  }
+
+  const ul = document.getElementById("city-list");
+  ul.innerHTML = "";
+
+  // Group headers for region sort
+  let lastRegion = null;
+
+  list.forEach(city => {
+    if (sort === "region" && city.region !== lastRegion) {
+      lastRegion = city.region;
+      const li = document.createElement("li");
+      li.style.cssText = "font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);padding:10px 8px 4px;cursor:default;border:none;";
+      li.textContent = city.region;
+      li.classList.add("is-added"); // prevent hover
+      ul.appendChild(li);
+    }
+
+    const added = !!selectedCities.find(c => c.name === city.name);
+    const li = document.createElement("li");
+    li.className = added ? "is-added" : "";
+
+    const tzShort = city.tz.split("/").pop().replace(/_/g, " ");
+    li.innerHTML = `
+      <div>
+        <div>${city.name}</div>
+        <div class="city-sub">${city.country}</div>
+      </div>
+      <span class="tz-chip">${tzShort}</span>
+    `;
+    if (!added) li.addEventListener("click", () => addCity(city));
+    ul.appendChild(li);
+  });
+
+  if (!list.length) {
+    ul.innerHTML = `<div class="empty">No cities match "<strong>${term}</strong>"</div>`;
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   RENDER  –  Selected list
+═══════════════════════════════════════════════════════ */
+function renderSelectedList() {
+  const container = document.getElementById("selected-list");
+  updateSelBadge();
+
+  if (!selectedCities.length) {
+    container.innerHTML = `<div class="empty">No cities selected yet.<br>Search or browse to add some.</div>`;
+    return;
+  }
+
+  container.innerHTML = "";
+  selectedCities.forEach(city => {
+    const div = document.createElement("div");
+    div.className = "city-card";
+    div.id = `card-${slugify(city.name)}`;
+
+    const hasWeather = city.weather && city.weather.temperature !== null;
+    const tempUnit = prefs.tempUnit === "fahrenheit" ? "°F" : "°C";
+    const temp     = hasWeather ? `${city.weather.temperature}${tempUnit}` : "—";
+    const feels    = hasWeather && city.weather.feelsLike !== null ? `Feels like ${city.weather.feelsLike}${tempUnit}` : "";
+    const cond     = city.weather ? city.weather.condition : "Loading…";
+    const icon     = city.weather ? city.weather.icon : "";
+    const wind     = hasWeather && city.weather.wind !== null ? `💨 ${city.weather.wind} km/h` : "";
+    const hum      = hasWeather && city.weather.humidity != null ? `💧 ${city.weather.humidity}%` : "";
+    const offset   = utcOffset(city.tz);
+    const spinner  = !city.weather ? `<span class="spinner"></span>` : "";
+
+    div.innerHTML = `
+      <div class="city-card-header">
+        <div>
+          <div class="city-card-name">${city.name}</div>
+          <div class="city-card-country">${city.country} · ${offset}</div>
+        </div>
+        <button class="btn-remove" onclick="removeCity('${escQ(city.name)}')">Remove</button>
+      </div>
+      <div class="city-card-time" id="time-${slugify(city.name)}">${localTime(city.tz)}</div>
+      <div class="city-card-date">${localDate(city.tz)}</div>
+      <div class="city-card-weather">
+        ${icon ? `<span class="wicon">${icon}</span>` : spinner}
+        ${hasWeather ? `<span class="wtemp">${temp}</span>` : ""}
+        <span>${cond}</span>
+        ${feels ? `<span>${feels}</span>` : ""}
+        ${wind  ? `<span>${wind}</span>` : ""}
+        ${hum   ? `<span>${hum}</span>` : ""}
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+/* ══════════════════════════════════════════════════════
+   RENDER  –  Clock panel on map
+═══════════════════════════════════════════════════════ */
+function renderClockPanel() {
+  const panel = document.getElementById("clock-panel");
+  if (!prefs.showClock || !selectedCities.length) { panel.innerHTML = ""; return; }
+
+  // Show max 5 clocks to avoid clutter
+  const list = selectedCities.slice(0, 5);
+  panel.innerHTML = list.map(city => `
+    <div class="clock-mini">
+      <div class="clock-mini-city">${city.name}</div>
+      <div class="clock-mini-time" id="clk-${slugify(city.name)}">${localTime(city.tz)}</div>
+      <div class="clock-mini-meta">${city.weather && city.weather.icon ? city.weather.icon + " " : ""}${city.weather && city.weather.temperature !== null ? city.weather.temperature + (prefs.tempUnit === "fahrenheit" ? "°F" : "°C") : ""}</div>
+    </div>
+  `).join("");
+}
+
+/* ══════════════════════════════════════════════════════
+   LIVE CLOCK  – ticks every second
+═══════════════════════════════════════════════════════ */
+function tickClocks() {
+  selectedCities.forEach(city => {
+    const slug = slugify(city.name);
+    const el = document.getElementById("time-" + slug);
+    if (el) el.textContent = localTime(city.tz);
+    const cl = document.getElementById("clk-" + slug);
+    if (cl) cl.textContent = localTime(city.tz);
+    if (cityLayers[city.name]) {
+      cityLayers[city.name].tooltip.setContent(buildTooltipHTML(city));
+    }
+  });
+}
+
+/* ══════════════════════════════════════════════════════
+   WEATHER REFRESH
+═══════════════════════════════════════════════════════ */
+function startWeatherRefresh() {
+  if (weatherRefreshTimer) clearInterval(weatherRefreshTimer);
+  weatherRefreshTimer = setInterval(async () => {
+    if (!selectedCities.length) return;
+    setStatus("loading", "Refreshing weather…");
+    for (const city of selectedCities) {
+      city.weather = await fetchWeather(city.lat, city.lng);
+      cityLayers[city.name]?.tooltip.setContent(buildTooltipHTML(city));
+    }
+    renderSelectedList();
+    renderClockPanel();
+    setStatus("ok", `Updated ${new Date().toLocaleTimeString()}`);
+  }, prefs.refreshInterval);
+}
+
+/* ══════════════════════════════════════════════════════
+   EXPORT / IMPORT
+═══════════════════════════════════════════════════════ */
+function exportCities() {
+  const data = selectedCities.map(({ name, country, region, lat, lng, tz }) =>
+    ({ name, country, region, lat, lng, tz })
+  );
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "cities.json";
+  a.click();
+}
+
+function importCities(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const arr = JSON.parse(ev.target.result);
+      if (!Array.isArray(arr)) throw new Error();
+      arr.forEach(c => {
+        if (c.name && c.lat != null && c.lng != null && c.tz) {
+          // Merge with ALL_CITIES data if known, else use raw
+          const known = ALL_CITIES.find(x => x.name === c.name);
+          addCity(known || c);
         }
+      });
+    } catch (_) {
+      alert("Could not import: invalid JSON format.");
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = "";
+}
 
-        function applyTheme() {
-            if (preferences.darkMode) document.body.classList.add('dark-mode');
-            else document.body.classList.remove('dark-mode');
-        }
+/* ══════════════════════════════════════════════════════
+   UI HELPERS
+═══════════════════════════════════════════════════════ */
+function switchTab(id, btn) {
+  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+  btn.classList.add("active");
+  document.getElementById("panel-browse").classList.toggle("hidden", id !== "browse");
+  document.getElementById("panel-selected").classList.toggle("hidden", id !== "selected");
+}
 
-        function savePreferences() {
-            preferences.tempUnit = document.getElementById("temp-unit").value;
-            preferences.timeFormat = document.getElementById("time-format").value;
-            preferences.showIcons = document.getElementById("show-icons").checked;
-            preferences.showDayNight = document.getElementById("show-daynight").checked;
-            preferences.darkMode = document.getElementById("dark-mode").checked;
-            preferences.autoFit = document.getElementById("auto-fit").checked;
-            preferences.refreshInterval = parseInt(document.getElementById("refresh-interval").value);
+function updateSelBadge() {
+  document.getElementById("sel-badge").textContent =
+    selectedCities.length ? `(${selectedCities.length})` : "";
+}
 
-            localStorage.setItem("worldMapPreferences", JSON.stringify(preferences));
-            applyTheme();
-            closePreferences();
-            refreshAllCities();
-            updateTerminator();
-            startWeatherRefresh();
-        }
+function clearSearch() {
+  document.getElementById("search").value = "";
+  renderBrowseList();
+}
 
-        function openPreferences() {
-            document.getElementById("temp-unit").value = preferences.tempUnit;
-            document.getElementById("time-format").value = preferences.timeFormat;
-            document.getElementById("show-icons").checked = preferences.showIcons;
-            document.getElementById("show-daynight").checked = preferences.showDayNight;
-            document.getElementById("dark-mode").checked = preferences.darkMode;
-            document.getElementById("auto-fit").checked = preferences.autoFit;
-            document.getElementById("refresh-interval").value = preferences.refreshInterval;
-            document.getElementById("preferences-modal").style.display = "flex";
-        }
+function toggleSidebar() {
+  sidebarOpen = !sidebarOpen;
+  document.getElementById("sidebar").classList.toggle("collapsed", !sidebarOpen);
+}
 
-        function closePreferences() {
-            document.getElementById("preferences-modal").style.display = "none";
-        }
+function slugify(name) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+}
 
-        function initMap() {
-            map = L.map('map').setView([20, 0], 2);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; OpenStreetMap contributors'
-            }).addTo(map);
-            terminatorLayer = L.terminator({ fillOpacity: 0.35 });
-            if (preferences.showDayNight) terminatorLayer.addTo(map);
-        }
+function escQ(str) {
+  return str.replace(/'/g, "\\'");
+}
 
-        function updateTerminator() {
-            if (!terminatorLayer) return;
-            if (preferences.showDayNight) {
-                terminatorLayer.setTime();
-                if (!map.hasLayer(terminatorLayer)) terminatorLayer.addTo(map);
-            } else {
-                if (map.hasLayer(terminatorLayer)) map.removeLayer(terminatorLayer);
-            }
-        }
+/* ══════════════════════════════════════════════════════
+   KEYBOARD SHORTCUT  –  Escape closes prefs
+═══════════════════════════════════════════════════════ */
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closePrefs();
+  if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+    document.getElementById("search").focus();
+    e.preventDefault();
+  }
+});
 
-        function getLocalTime(tz) {
-            try {
-                const options = { timeZone: tz, hour: 'numeric', minute: '2-digit' };
-                if (preferences.timeFormat === "24") options.hour12 = false;
-                return new Intl.DateTimeFormat('en-US', options).format(new Date());
-            } catch (e) { return 'N/A'; }
-        }
+/* ══════════════════════════════════════════════════════
+   SEARCH INPUT
+═══════════════════════════════════════════════════════ */
+document.getElementById("search").addEventListener("input", () => {
+  renderBrowseList();
+  // Auto-switch to browse tab if user types
+  switchTab("browse", document.getElementById("tab-browse"));
+});
 
-        async function fetchWeather(lat, lng) {
-            try {
-                const unitParam = preferences.tempUnit === "fahrenheit" ? "fahrenheit" : "celsius";
-                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,weather_code&temperature_unit=${unitParam}&timezone=auto`;
-                const res = await fetch(url);
-                const data = await res.json();
-                const code = data.current.weather_code;
-                return {
-                    temperature: Math.round(data.current.temperature_2m),
-                    condition: weatherCodeMap[code] || "Unknown",
-                    icon: weatherCodeMap[code] ? weatherCodeMap[code].split(" ")[0] : "🌡️"
-                };
-            } catch (e) {
-                return { temperature: null, condition: "Unavailable", icon: "❓" };
-            }
-        }
+/* ══════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════ */
+function init() {
+  loadPrefs();
+  initMap();
+  renderBrowseList();
+  renderSelectedList();
 
-        function refreshAllCities() {
-            renderSelectedList();
-            selectedCities.forEach(city => {
-                if (cityLayers[city.name]) {
-                    const label = cityLayers[city.name].label;
-                    const timeStr = getLocalTime(city.tz);
-                    const iconPart = preferences.showIcons && city.weather ? city.weather.icon + " " : "";
-                    label.setContent(`<div class="custom-label"><strong>${city.name}</strong><br>${iconPart}${timeStr}</div>`);
-                }
-            });
-        }
+  // Tick clock every second
+  clockTimer = setInterval(() => {
+    tickClocks();
+    // Update terminator every minute
+    if (new Date().getSeconds() === 0) updateTerminator();
+  }, 1000);
 
-        async function addCity(city) {
-            if (selectedCities.find(c => c.name === city.name)) return;
-            selectedCities.push(city);
+  startWeatherRefresh();
+}
 
-            const circle = L.circleMarker([city.lat, city.lng], {
-                radius: 8, fillColor: "#1e90ff", color: "#fff", weight: 3, opacity: 1, fillOpacity: 0.9
-            }).addTo(map);
-
-            const label = L.tooltip({
-                permanent: true, direction: 'right', offset: [12, 0], interactive: false
-            }).setLatLng([city.lat, city.lng]).addTo(map);
-
-            cityLayers[city.name] = { circle, label };
-
-            const weather = await fetchWeather(city.lat, city.lng);
-            city.weather = weather;
-
-            renderSelectedList();
-            refreshAllCities();
-            if (preferences.autoFit) fitMapToCities();
-        }
-
-        function removeCity(name) {
-            const index = selectedCities.findIndex(c => c.name === name);
-            if (index > -1) {
-                selectedCities.splice(index, 1);
-                if (cityLayers[name]) {
-                    map.removeLayer(cityLayers[name].circle);
-                    map.removeLayer(cityLayers[name].label);
-                    delete cityLayers[name];
-                }
-                renderSelectedList();
-            }
-        }
-
-        function renderSelectedList() {
-            const container = document.getElementById('selected-list');
-            container.innerHTML = '';
-            selectedCities.forEach(city => {
-                const div = document.createElement('div');
-                div.className = 'selected-item';
-                const safeId = `time-${city.name.replace(/\s+/g, '-')}`;
-                const temp = city.weather && city.weather.temperature !== null 
-                    ? `${city.weather.temperature}°${preferences.tempUnit === "fahrenheit" ? "F" : "C"}` 
-                    : '—';
-                const cond = city.weather ? city.weather.condition : '—';
-
-                div.innerHTML = `
-                    <strong>${city.name}, ${city.country}</strong><br>
-                    Local time: <span id="${safeId}">${getLocalTime(city.tz)}</span><br>
-                    <span class="weather-info">Weather: ${temp} • ${cond}</span>
-                    <button onclick="removeCity('${city.name}')" style="float:right;">Remove</button>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        function renderCityList(filteredCities) {
-            const list = document.getElementById('city-list');
-            list.innerHTML = '';
-            filteredCities.forEach(city => {
-                const li = document.createElement('li');
-                li.textContent = `${city.name}, ${city.country}`;
-                li.addEventListener('click', () => addCity(city));
-                list.appendChild(li);
-            });
-        }
-
-        function fitMapToCities() {
-            if (selectedCities.length === 0) return;
-            const bounds = L.latLngBounds(selectedCities.map(c => [c.lat, c.lng]));
-            map.fitBounds(bounds, { padding: [50, 50] });
-        }
-
-        function exportCities() {
-            const dataStr = JSON.stringify(selectedCities, null, 2);
-            const blob = new Blob([dataStr], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = "selected-cities.json"; a.click();
-        }
-
-        function importCities(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(ev) {
-                try {
-                    const imported = JSON.parse(ev.target.result);
-                    imported.forEach(city => {
-                        if (!selectedCities.find(c => c.name === city.name)) addCity(city);
-                    });
-                } catch (err) { alert("Invalid import file"); }
-            };
-            reader.readAsText(file);
-        }
-
-        function startWeatherRefresh() {
-            if (weatherRefreshTimer) clearInterval(weatherRefreshTimer);
-            weatherRefreshTimer = setInterval(async () => {
-                for (const city of selectedCities) {
-                    city.weather = await fetchWeather(city.lat, city.lng);
-                }
-                renderSelectedList();
-                refreshAllCities();
-            }, preferences.refreshInterval);
-        }
-
-        function initializeApp() {
-            loadPreferences();
-            initMap();
-            renderCityList(citiesData);   // ← This ensures the list appears on load
-
-            document.getElementById('search').addEventListener('input', () => {
-                const term = document.getElementById('search').value.toLowerCase().trim();
-                const filtered = citiesData.filter(c => 
-                    c.name.toLowerCase().includes(term) || c.country.toLowerCase().includes(term)
-                );
-                renderCityList(filtered);
-            });
-
-            setInterval(refreshAllCities, 30000);
-            startWeatherRefresh();
-            setInterval(updateTerminator, 60000);
-        }
-
-        window.onload = initializeApp;
-    </script>
+window.addEventListener("load", init);
+</script>
 </body>
 </html>
