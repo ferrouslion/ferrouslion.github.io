@@ -269,8 +269,8 @@
                 const div = document.createElement('div');
                 div.className = 'selected-item';
                 const safeId = `time-${city.name.replace(/\s+/g, '-')}`;
-                const temp = city.weather && city.weather.temperature !== null
-                    ? `${city.weather.temperature}°${preferences.tempUnit === "fahrenheit" ? "F" : "C"}`
+                const temp = city.weather && city.weather.temperature !== null 
+                    ? `${city.weather.temperature}°${preferences.tempUnit === "fahrenheit" ? "F" : "C"}` 
                     : '—';
                 const cond = city.weather ? city.weather.condition : '—';
 
@@ -342,7 +342,7 @@
 
             document.getElementById('search').addEventListener('input', () => {
                 const term = document.getElementById('search').value.toLowerCase().trim();
-                const filtered = citiesData.filter(c =>
+                const filtered = citiesData.filter(c => 
                     c.name.toLowerCase().includes(term) || c.country.toLowerCase().includes(term)
                 );
                 renderCityList(filtered);
