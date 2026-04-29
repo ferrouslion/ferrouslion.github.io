@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>World Time Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; }
+        .container { display: flex; height: 100vh; }
+        #sidebar { width: 340px; background: #f8f9fa; padding: 20px; overflow-y: auto; border-right: 1px solid #ddd; box-sizing: border-box; }
+        #map { flex: 1; }
+        input[type="text"] { width: 100%; padding: 10px; margin-bottom: 15px; box-sizing: border-box; }
+        ul { list-style: none; padding: 0; margin: 0; }
+        li { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; }
+        li:hover { background: #e9ecef; }
+        .selected-item { background: #fff; padding: 15px; margin-bottom: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #c82333; }
+        h1, h2 { margin-top: 0; }
+
+        /* Custom label styling */
+        .custom-label {
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid #1e90ff;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 13px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            white-space: nowrap;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div id="sidebar">
+            <h1>World Time Map</h1>
+            <h2>Select Cities</h2>
+            <input type="text" id="search" placeholder="Search cities or countries...">
+            <ul id="city-list"></ul>
+            
+            <h2>Selected Cities</h2>
+            <div id="selected-list"></div>
+        </div>
+        
+        <!-- Map -->
+        <div id="map"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const citiesData = [
+            { name: "Miami", country: "United States", lat: 25.7752, lng: -80.2086, tz: "America/New_York" },
+            { name: "London", country: "United Kingdom", lat: 51.5074, lng: -0.1278, tz: "Europe/London" },
+            { name: "Paris", country: "France", lat: 48.8566, lng: 2.3522, tz: "Europe/Paris" },
+            { name: "Tokyo", country: "Japan", lat: 35.6895, lng: 139.6917, tz: "Asia/Tokyo" },
+            { name: "Sydney", country: "Australia", lat: -33.8688, lng: 151.2093, tz: "Australia/Sydney" },
+            { name: "Moscow", country: "Russia", lat: 55.7558, lng: 37.6173, tz: "Europe/Moscow" },
+            { name: "Beijing", country: "China", lat: 39.9042, lng: 116.4074, tz: "Asia/Shanghai" },
+            { name: "Cape Town", country: "South Africa", lat: -33.9249, lng: 18.4241, tz: "Africa/Johannesburg" },
+            { name: "Rio de Janeiro", country: "Brazil", lat: -22.9068, lng: -43.1729, tz: "America/Sao_Paulo" },
+            { name: "Bluewater Bay", country: "United States", lat: 30.48239, lng: -86.42378, tz: "America/Chicago" }
+        ];
+
+        let map;
+        let selectedCities = [];
+        let cityLayers = {};   // Will store both circle and label
+
+        function initMap() {
+            map = L.map('map').setView([20, 0], 2);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+        }
+
+        function getLocalTime(tz) {
+            try {
+                const now = new Date();
+                return new Intl.DateTimeFormat('en-US', {
+                    timeZone: tz,
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: false
+                }).format(now);
+            } catch (e) {
+                return 'N/A';
+            }
+        }
+
+        function updateTimes() {
+            selectedCities.forEach(city => {
+                const timeStr = getLocalTime(city.tz);
+                
+                // Update sidebar
+                const timeEl = document.getElementById(`time-${city.name.replace(/\s+/g, '-')}`);
+                if (timeEl) timeEl.textContent = timeStr;
+
+                // Update map label
+                if (cityLayers[city.name] && cityLayers[city.name].label) {
+                    cityLayers[city.name].label.setContent(`
+                        <div class="custom-label">
+                            <strong>${city.name}</strong><br>
+                            ${timeStr}
+                        </div>
+                    `);
+                }
+            });
+        }
+
+        function addCity(city) {
+            if (selectedCities.find(c => c.name === city.name)) return;
+
+            selectedCities.push(city);
+
+            // Blue circle marker
+            const circle = L.circleMarker([city.lat, city.lng], {
+                radius: 8,
+                fillColor: "#1e90ff",
+                color: "#ffffff",
+                weight: 3,
+                opacity: 1,
+                fillOpacity: 0.9
+            }).addTo(map);
+
+            // Permanent label next to the circle
+            const label = L.tooltip({
+                permanent: true,
+                direction: 'right',
+                offset: [12, 0],
+                className: 'custom-label-tooltip',
+                interactive: false
+            })
+            .setContent(`
+                <div class="custom-label">
+                    <strong>${city.name}</strong><br>
+                    ${getLocalTime(city.tz)}
+                </div>
+            `)
+            .setLatLng([city.lat, city.lng])
+            .addTo(map);
+
+            cityLayers[city.name] = { circle, label };
+
+            renderSelectedList();
+            updateTimes();
+        }
+
+        function removeCity(name) {
+            const index = selectedCities.findIndex(c => c.name === name);
+            if (index > -1) {
+                selectedCities.splice(index, 1);
+                
+                if (cityLayers[name]) {
+                    map.removeLayer(cityLayers[name].circle);
+                    map.removeLayer(cityLayers[name].label);
+                    delete cityLayers[name];
+                }
+                renderSelectedList();
+            }
+        }
+
+        function renderSelectedList() {
+            const container = document.getElementById('selected-list');
+            container.innerHTML = '';
+            selectedCities.forEach(city => {
+                const div = document.createElement('div');
+                div.className = 'selected-item';
+                const safeId = `time-${city.name.replace(/\s+/g, '-')}`;
+                div.innerHTML = `
+                    <strong>${city.name}, ${city.country}</strong><br>
+                    Local time: <span id="${safeId}">${getLocalTime(city.tz)}</span>
+                    <button onclick="removeCity('${city.name}')" style="float:right;">Remove</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function renderCityList(filteredCities) {
+            const list = document.getElementById('city-list');
+            list.innerHTML = '';
+            filteredCities.forEach(city => {
+                const li = document.createElement('li');
+                li.textContent = `${city.name}, ${city.country}`;
+                li.addEventListener('click', () => addCity(city));
+                list.appendChild(li);
+            });
+        }
+
+        function initializeApp() {
+            initMap();
+
+            const searchInput = document.getElementById('search');
+            renderCityList(citiesData);
+
+            searchInput.addEventListener('input', () => {
+                const term = searchInput.value.toLowerCase().trim();
+                const filtered = citiesData.filter(city =>
+                    city.name.toLowerCase().includes(term) || 
+                    city.country.toLowerCase().includes(term)
+                );
+                renderCityList(filtered);
+            });
+
+            setInterval(updateTimes, 30000);
+        }
+
+        window.onload = initializeApp;
+    </script>
+</body>
+</html>
