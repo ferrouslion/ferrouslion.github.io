@@ -568,7 +568,7 @@ body {
     <label class="check-row"><input type="checkbox" id="p-icons"><span>Weather icons on map labels</span></label>
     <label class="check-row"><input type="checkbox" id="p-clock"><span>Clock panel on map</span></label>
     <label class="check-row"><input type="checkbox" id="p-autofit"><span>Auto-fit map when adding cities</span></label>
-    <label class="check-row"><input type="checkbox" id="p-dark"><span>Dark mode</span></label>
+    <label class="check-row"><input type="checkbox" id="p-dark" onchange="syncMapStyleSelect()"><span>Dark mode</span></label>
 
     <div class="modal-footer">
       <button class="btn-secondary" onclick="closePrefs()">Cancel</button>
@@ -634,7 +634,9 @@ body {
   // terminator condition: cos(zenith) = 0  →  sin(lat)·sin(dec) + cos(lat)·cos(dec)·cos(LHA) = 0
   // → lat = atan( -cos(LHA) / tan(dec) )   where LHA = lng - GHA (subtracting to get local hour angle)
   function terminatorLat(lngDeg, ghaDeg, decDeg) {
-    const lha = (lngDeg - ghaDeg) * D2R;   // Local Hour Angle in radians
+    // LHA = GHA + east_longitude  (longitude is negative for west, e.g. -86.5 for Destin FL)
+    // This is the standard astronomical formula: LHA = GMST − RA + λ = GHA + λ
+    const lha = (ghaDeg + lngDeg) * D2R;
     const decR = decDeg * D2R;
     // Guard against dec == 0 (equinox): atan of ±Infinity → ±90
     return Math.atan(-Math.cos(lha) / Math.tan(decR)) * R2D;
@@ -726,6 +728,7 @@ const ALL_CITIES = [
   {name:"Dallas",country:"United States",region:"North America",lat:32.7767,lng:-96.797,tz:"America/Chicago"},
   {name:"Delhi",country:"India",region:"Asia",lat:28.6139,lng:77.209,tz:"Asia/Kolkata"},
   {name:"Denver",country:"United States",region:"North America",lat:39.7392,lng:-104.9903,tz:"America/Denver"},
+  {name:"Destin",country:"United States",region:"North America",lat:30.3935,lng:-86.495,tz:"America/Chicago"},
   {name:"Dhaka",country:"Bangladesh",region:"Asia",lat:23.8103,lng:90.4125,tz:"Asia/Dhaka"},
   {name:"Dublin",country:"Ireland",region:"Europe",lat:53.3498,lng:-6.2603,tz:"Europe/Dublin"},
   {name:"Dubai",country:"UAE",region:"Middle East",lat:25.2048,lng:55.2708,tz:"Asia/Dubai"},
@@ -874,16 +877,33 @@ function applyTheme() {
   document.body.classList.toggle("dark", !!prefs.darkMode);
 }
 
+function syncMapStyleSelect() {
+  const dark = document.getElementById("p-dark").checked;
+  const sel  = document.getElementById("p-mapstyle");
+  if (dark) {
+    sel.value    = "dark";
+    sel.disabled = true;
+    sel.style.opacity = "0.45";
+    sel.style.cursor  = "not-allowed";
+  } else {
+    if (sel.value === "dark" && prefs.darkMode) sel.value = "osm";
+    sel.disabled = false;
+    sel.style.opacity = "";
+    sel.style.cursor  = "";
+  }
+}
+
 function openPrefs() {
-  document.getElementById("p-temp").value = prefs.tempUnit;
-  document.getElementById("p-timefmt").value = prefs.timeFormat;
-  document.getElementById("p-mapstyle").value = prefs.mapStyle;
-  document.getElementById("p-refresh").value = prefs.refreshInterval;
+  document.getElementById("p-temp").value     = prefs.tempUnit;
+  document.getElementById("p-timefmt").value  = prefs.timeFormat;
+  document.getElementById("p-mapstyle").value = prefs.darkMode ? "dark" : prefs.mapStyle;
+  document.getElementById("p-refresh").value  = prefs.refreshInterval;
   document.getElementById("p-daynight").checked = prefs.showDayNight;
-  document.getElementById("p-icons").checked = prefs.showIcons;
-  document.getElementById("p-clock").checked = prefs.showClock;
-  document.getElementById("p-autofit").checked = prefs.autoFit;
-  document.getElementById("p-dark").checked = prefs.darkMode;
+  document.getElementById("p-icons").checked    = prefs.showIcons;
+  document.getElementById("p-clock").checked    = prefs.showClock;
+  document.getElementById("p-autofit").checked  = prefs.autoFit;
+  document.getElementById("p-dark").checked     = prefs.darkMode;
+  syncMapStyleSelect();
   document.getElementById("prefs-overlay").classList.add("open");
 }
 
@@ -893,15 +913,25 @@ function closePrefs() {
 
 function savePrefs() {
   const oldMapStyle = prefs.mapStyle;
-  prefs.tempUnit       = document.getElementById("p-temp").value;
-  prefs.timeFormat     = document.getElementById("p-timefmt").value;
-  prefs.mapStyle       = document.getElementById("p-mapstyle").value;
+  const darkMode    = document.getElementById("p-dark").checked;
+
+  prefs.tempUnit      = document.getElementById("p-temp").value;
+  prefs.timeFormat    = document.getElementById("p-timefmt").value;
   prefs.refreshInterval = parseInt(document.getElementById("p-refresh").value);
-  prefs.showDayNight   = document.getElementById("p-daynight").checked;
-  prefs.showIcons      = document.getElementById("p-icons").checked;
-  prefs.showClock      = document.getElementById("p-clock").checked;
-  prefs.autoFit        = document.getElementById("p-autofit").checked;
-  prefs.darkMode       = document.getElementById("p-dark").checked;
+  prefs.showDayNight  = document.getElementById("p-daynight").checked;
+  prefs.showIcons     = document.getElementById("p-icons").checked;
+  prefs.showClock     = document.getElementById("p-clock").checked;
+  prefs.autoFit       = document.getElementById("p-autofit").checked;
+  prefs.darkMode      = darkMode;
+
+  // When dark mode is on, lock map to CartoDB Dark.
+  // When turning dark mode off, fall back to the last manually chosen style (or OSM).
+  if (darkMode) {
+    prefs.mapStyle = "dark";
+  } else {
+    const chosen = document.getElementById("p-mapstyle").value;
+    prefs.mapStyle = chosen === "dark" ? "osm" : chosen;
+  }
 
   if (storageAllowed()) localStorage.setItem("wtw_prefs_v2", JSON.stringify(prefs));
   applyTheme();
