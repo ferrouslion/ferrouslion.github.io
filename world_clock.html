@@ -553,9 +553,47 @@ body {
   </div>
 </div>
 
-<!-- Scripts: Leaflet first, then terminator which depends on it -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/@joergdietrich/leaflet.terminator@1.0.0/terminator.js"></script>
+<script>
+/* ── Inline terminator (no external dep, always available) ── */
+(function(){
+  function julian(d){ return d/86400000 + 2440587.5; }
+  function GMST(j){ return 18.697374558 + 24.06570982441908*(j-2451545); }
+  function sunEcliptic(j){
+    const n=j-2451545, L=(280.460+0.9856474*n)%360, g=(357.528+0.9856003*n)*Math.PI/180;
+    const lambda=((L+1.915*Math.sin(g)+0.020*Math.sin(2*g))%360)*Math.PI/180;
+    const epsilon=23.439*Math.PI/180;
+    return{ra:Math.atan2(Math.cos(epsilon)*Math.sin(lambda),Math.cos(lambda)),dec:Math.asin(Math.sin(epsilon)*Math.sin(lambda))};
+  }
+  function termLat(lng,dec,ha){
+    const R2D=180/Math.PI;
+    return Math.atan(-Math.cos((lng+ha)*Math.PI/180)/Math.tan(dec))*R2D;
+  }
+  L.Terminator=L.Polygon.extend({
+    options:{color:"#000",fillColor:"#000",fillOpacity:0.3,weight:0,resolution:2},
+    initialize:function(o){
+      L.setOptions(this,o);
+      this.setTime(new Date());
+    },
+    setTime:function(d){
+      d=d||new Date();
+      const j=julian(d.getTime());
+      const sun=sunEcliptic(j);
+      const gmst=GMST(j);
+      const ha=(gmst%(24)*15);
+      const lats=[];
+      for(let lng=-180;lng<=180;lng+=this.options.resolution){
+        lats.push([termLat(lng,sun.dec,ha),lng]);
+      }
+      const dec=sun.dec*180/Math.PI;
+      const poles=dec>0?[[-90,-180],[-90,180]]:[[90,-180],[90,180]];
+      const ring=[poles[0],...lats,poles[1]];
+      this.setLatLngs([ring]);
+    }
+  });
+  L.terminator=function(o){return new L.Terminator(o);};
+})();
+</script>
 <script>
 /* ══════════════════════════════════════════════════════
    DATA  –  100 cities, deduplicated, sorted by name
