@@ -436,6 +436,30 @@ body {
 .clock-mini-time { font-size: 16px; font-weight: 300; letter-spacing: -.5px; font-variant-numeric: tabular-nums; color: var(--text); }
 .clock-mini-meta { font-size: 10px; color: var(--text2); }
 
+/* ── Cookie consent banner ───────────────────────────── */
+#consent-banner {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 9999;
+  background: var(--surface);
+  border-top: 1px solid var(--border-strong);
+  padding: 14px 20px;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 -2px 12px rgba(0,0,0,.1);
+  flex-wrap: wrap;
+}
+#consent-banner p {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.5;
+  min-width: 220px;
+}
+#consent-banner p strong { color: var(--text); font-weight: 600; }
+.consent-btns { display: flex; gap: 8px; flex-shrink: 0; }
+
 /* scrollbar slim */
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -553,45 +577,119 @@ body {
   </div>
 </div>
 
+<!-- Cookie consent banner -->
+<div id="consent-banner">
+  <p><strong>This site uses local storage</strong> to remember your selected cities and preferences across visits. No data is sent to any server.</p>
+  <div class="consent-btns">
+    <button class="btn-secondary" onclick="declineConsent()">Decline</button>
+    <button class="btn-primary" onclick="acceptConsent()">Accept &amp; remember my settings</button>
+  </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 /* ── Inline terminator (no external dep, always available) ── */
-(function(){
-  function julian(d){ return d/86400000 + 2440587.5; }
-  function GMST(j){ return 18.697374558 + 24.06570982441908*(j-2451545); }
-  function sunEcliptic(j){
-    const n=j-2451545, L=(280.460+0.9856474*n)%360, g=(357.528+0.9856003*n)*Math.PI/180;
-    const lambda=((L+1.915*Math.sin(g)+0.020*Math.sin(2*g))%360)*Math.PI/180;
-    const epsilon=23.439*Math.PI/180;
-    return{ra:Math.atan2(Math.cos(epsilon)*Math.sin(lambda),Math.cos(lambda)),dec:Math.asin(Math.sin(epsilon)*Math.sin(lambda))};
+(function () {
+  const D2R = Math.PI / 180;
+  const R2D = 180 / Math.PI;
+
+  // Julian date from JS timestamp (ms since Unix epoch)
+  function julianDate(ms) {
+    return ms / 86400000 + 2440587.5;
   }
-  function termLat(lng,dec,ha){
-    const R2D=180/Math.PI;
-    return Math.atan(-Math.cos((lng+ha)*Math.PI/180)/Math.tan(dec))*R2D;
+
+  // Greenwich Mean Sidereal Time in degrees (0–360)
+  function gmstDeg(jd) {
+    const T = (jd - 2451545.0) / 36525;
+    let gmst = 280.46061837
+      + 360.98564736629 * (jd - 2451545)
+      + 0.000387933 * T * T
+      - (T * T * T) / 38710000;
+    return ((gmst % 360) + 360) % 360;
   }
-  L.Terminator=L.Polygon.extend({
-    options:{color:"#000",fillColor:"#000",fillOpacity:0.3,weight:0,resolution:2},
-    initialize:function(o){
-      L.setOptions(this,o);
+
+  // Sun's geocentric ecliptic longitude → equatorial coords
+  // Returns { ra (deg, 0-360), dec (deg) }
+  function sunPosition(jd) {
+    const n = jd - 2451545.0;
+    // Mean longitude & mean anomaly (degrees)
+    const L = ((280.460 + 0.9856474 * n) % 360 + 360) % 360;
+    const g = ((357.528 + 0.9856003 * n) % 360 + 360) % 360;
+    const gR = g * D2R;
+    // Ecliptic longitude
+    const lambda = L + 1.915 * Math.sin(gR) + 0.020 * Math.sin(2 * gR);
+    const lambdaR = lambda * D2R;
+    // Obliquity of ecliptic
+    const eps = (23.439 - 0.0000004 * n) * D2R;
+    // Right ascension & declination
+    const ra  = (Math.atan2(Math.cos(eps) * Math.sin(lambdaR), Math.cos(lambdaR)) * R2D + 360) % 360;
+    const dec = Math.asin(Math.sin(eps) * Math.sin(lambdaR)) * R2D;
+    return { ra, dec };
+  }
+
+  // For a given geographic longitude (deg) and the sun's
+  // sub-solar longitude (GHA, deg) and declination (dec, deg),
+  // compute the latitude of the terminator.
+  // GHA = GMST - RA  (Greenwich Hour Angle of the Sun)
+  // terminator condition: cos(zenith) = 0  →  sin(lat)·sin(dec) + cos(lat)·cos(dec)·cos(LHA) = 0
+  // → lat = atan( -cos(LHA) / tan(dec) )   where LHA = lng - GHA (subtracting to get local hour angle)
+  function terminatorLat(lngDeg, ghaDeg, decDeg) {
+    const lha = (lngDeg - ghaDeg) * D2R;   // Local Hour Angle in radians
+    const decR = decDeg * D2R;
+    // Guard against dec == 0 (equinox): atan of ±Infinity → ±90
+    return Math.atan(-Math.cos(lha) / Math.tan(decR)) * R2D;
+  }
+
+  L.Terminator = L.Polygon.extend({
+    options: {
+      color: 'transparent',
+      fillColor: '#000',
+      fillOpacity: 0.32,
+      weight: 0,
+      resolution: 1,   // degrees; 1° gives smooth curve
+    },
+
+    initialize: function (options) {
+      L.setOptions(this, options);
       this.setTime(new Date());
     },
-    setTime:function(d){
-      d=d||new Date();
-      const j=julian(d.getTime());
-      const sun=sunEcliptic(j);
-      const gmst=GMST(j);
-      const ha=(gmst%(24)*15);
-      const lats=[];
-      for(let lng=-180;lng<=180;lng+=this.options.resolution){
-        lats.push([termLat(lng,sun.dec,ha),lng]);
+
+    setTime: function (date) {
+      date = date || new Date();
+      const jd   = julianDate(date.getTime());
+      const sun  = sunPosition(jd);
+      const gmst = gmstDeg(jd);
+
+      // Greenwich Hour Angle of the Sun (degrees, 0–360)
+      const gha = ((gmst - sun.ra) % 360 + 360) % 360;
+
+      // Build terminator curve: one lat point per longitude step
+      const step = this.options.resolution;
+      const curve = [];
+      for (let lng = -180; lng <= 180; lng += step) {
+        const lat = terminatorLat(lng, gha, sun.dec);
+        // Skip degenerate points near the poles
+        if (isFinite(lat) && lat >= -90 && lat <= 90) {
+          curve.push([lat, lng]);
+        }
       }
-      const dec=sun.dec*180/Math.PI;
-      const poles=dec>0?[[-90,-180],[-90,180]]:[[90,-180],[90,180]];
-      const ring=[poles[0],...lats,poles[1]];
+
+      // Close the polygon on the night side:
+      // If dec > 0  → sun is in northern hemisphere → south pole is in night
+      // If dec < 0  → sun is in southern hemisphere → north pole is in night
+      // If dec == 0 → terminator runs exactly along a meridian (equinox edge case)
+      const nightPole = sun.dec >= 0 ? -90 : 90;
+      const ring = [
+        [nightPole, -180],
+        ...curve,
+        [nightPole,  180],
+      ];
+
       this.setLatLngs([ring]);
-    }
+    },
   });
-  L.terminator=function(o){return new L.Terminator(o);};
+
+  L.terminator = function (options) { return new L.Terminator(options); };
 })();
 </script>
 <script>
@@ -708,6 +806,9 @@ let weatherRefreshTimer = null;
 let clockTimer = null;
 let sidebarOpen = true;
 
+const CITIES_KEY = "wtw_cities_v1";
+function storageAllowed() { return localStorage.getItem("wtw_consent") === "1"; }
+
 const DEFAULT_PREFS = {
   tempUnit: "celsius",
   timeFormat: "12",
@@ -802,7 +903,7 @@ function savePrefs() {
   prefs.autoFit        = document.getElementById("p-autofit").checked;
   prefs.darkMode       = document.getElementById("p-dark").checked;
 
-  localStorage.setItem("wtw_prefs_v2", JSON.stringify(prefs));
+  if (storageAllowed()) localStorage.setItem("wtw_prefs_v2", JSON.stringify(prefs));
   applyTheme();
   closePrefs();
 
@@ -984,6 +1085,7 @@ async function addCity(city) {
   tooltip.setContent(buildTooltipHTML(enriched));
   renderSelectedList();
   renderClockPanel();
+  saveCities();
   setStatus("ok", `Updated ${new Date().toLocaleTimeString()}`);
 }
 
@@ -1000,6 +1102,7 @@ function removeCity(name) {
   renderSelectedList();
   renderClockPanel();
   updateSelBadge();
+  saveCities();
 }
 
 function clearAll() {
@@ -1244,6 +1347,34 @@ function escQ(str) {
 }
 
 /* ══════════════════════════════════════════════════════
+   PERSISTENCE  –  cities & prefs saved to localStorage
+═══════════════════════════════════════════════════════ */
+function saveCities() {
+  if (!storageAllowed()) return;
+  try {
+    const slim = selectedCities.map(({ name, country, region, lat, lng, tz }) =>
+      ({ name, country, region, lat, lng, tz })
+    );
+    localStorage.setItem(CITIES_KEY, JSON.stringify(slim));
+  } catch (_) {}
+}
+
+async function restoreCities() {
+  try {
+    const raw = localStorage.getItem(CITIES_KEY);
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    if (!Array.isArray(saved) || !saved.length) return;
+    setStatus("loading", `Restoring ${saved.length} saved ${saved.length === 1 ? "city" : "cities"}…`);
+    for (const c of saved) {
+      const canonical = ALL_CITIES.find(x => x.name === c.name) || c;
+      await addCity(canonical);
+    }
+    setStatus("ok", `Restored ${saved.length} ${saved.length === 1 ? "city" : "cities"}`);
+  } catch (_) {}
+}
+
+/* ══════════════════════════════════════════════════════
    KEYBOARD SHORTCUT  –  Escape closes prefs
 ═══════════════════════════════════════════════════════ */
 document.addEventListener("keydown", e => {
@@ -1264,18 +1395,47 @@ document.getElementById("search").addEventListener("input", () => {
 });
 
 /* ══════════════════════════════════════════════════════
+   COOKIE CONSENT BANNER
+═══════════════════════════════════════════════════════ */
+function showConsentIfNeeded() {
+  if (localStorage.getItem("wtw_consent") === "1") return;
+  const banner = document.getElementById("consent-banner");
+  if (banner) banner.style.display = "flex";
+}
+
+function acceptConsent() {
+  localStorage.setItem("wtw_consent", "1");
+  const banner = document.getElementById("consent-banner");
+  if (banner) banner.style.display = "none";
+  // Persist anything already added this session
+  saveCities();
+  if (storageAllowed()) localStorage.setItem("wtw_prefs_v2", JSON.stringify(prefs));
+}
+
+function declineConsent() {
+  localStorage.removeItem("wtw_prefs_v2");
+  localStorage.removeItem(CITIES_KEY);
+  localStorage.removeItem("wtw_consent");
+  const banner = document.getElementById("consent-banner");
+  if (banner) banner.style.display = "none";
+}
+
+/* ══════════════════════════════════════════════════════
    INIT
 ═══════════════════════════════════════════════════════ */
-function init() {
+async function init() {
   loadPrefs();
   initMap();
   renderBrowseList();
   renderSelectedList();
+  showConsentIfNeeded();
+
+  // Only restore saved cities if user has consented
+  if (storageAllowed()) await restoreCities();
 
   // Tick clock every second
   clockTimer = setInterval(() => {
     tickClocks();
-    // Update terminator every minute
     if (new Date().getSeconds() === 0) updateTerminator();
   }, 1000);
 
