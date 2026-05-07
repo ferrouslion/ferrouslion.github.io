@@ -1,39 +1,177 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coming Soon</title>
+    <title>FerrousLion • Personal Archive</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    
+    <!-- Favicon - replace with your cropped crest -->
+    <link rel="icon" href="https://via.placeholder.com/32x32/1f252e/D4A017?text=FL" type="image/png">
+    <link rel="apple-touch-icon" href="https://via.placeholder.com/180x180/1f252e/D4A017?text=FL">
+
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+        
         body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            background-color: #f4f4f4;
-            padding: 100px;
+            font-family: 'Inter', system-ui, sans-serif;
         }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: white;
-            padding: 50px;
-            border-radius: 10px;
-            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        
+        .hero-crest {
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        h1 {
-            color: #333;
+        
+        .hero-crest:hover {
+            transform: scale(1.05) rotate(2deg);
         }
-        p {
-            font-size: 18px;
-            color: #666;
+        
+        .file-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .file-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.4);
+        }
+        
+        .nav-link {
+            position: relative;
+        }
+        
+        .nav-link:after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -2px;
+            left: 0;
+            background-color: #D4A017;
+            transition: width 0.3s ease;
+        }
+        
+        .nav-link:hover:after {
+            width: 100%;
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1>FerrousLion - Coming Soon</h1>
-        <p><a href="https://psnprofiles.com/FerrousLion"><img src="https://card.psnprofiles.com/2/FerrousLion.png" border="0"></a></p>
-        <p><a href="https://www.exophase.com/xbox/user/FerrousLion4892/"><img src="https://card.exophase.com/1/3491575.png"></a></p>
-        <p><a href="world_clock.html">World Clock</a></p>
-    </div>
+<body class="bg-zinc-950 text-zinc-200 min-h-screen">
+    <!-- Navbar -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800">
+        <div class="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <img src="images/FerrousLion - Crest.png" alt="FerrousLion Crest" class="w-8 h-8 object-contain">
+                <span class="font-medium tracking-wider text-xl">FERROUSLION</span>
+            </div>
+            
+            <div class="flex items-center gap-8 text-sm font-light">
+                <a href="#files" class="nav-link text-zinc-400 hover:text-white">Files</a>
+                <a href="#about" class="nav-link text-zinc-400 hover:text-white">About</a>
+                <a href="#contact" class="nav-link text-zinc-400 hover:text-white">Contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <header class="pt-28 pb-20 flex items-center justify-center min-h-screen">
+        <div class="max-w-4xl mx-auto text-center px-6">
+            <img src="images/FerrousLion - Crest.png" 
+                 alt="FerrousLion Crest" 
+                 class="hero-crest mx-auto w-80 md:w-96 h-auto mb-10 drop-shadow-2xl">
+            
+            <h1 class="text-5xl md:text-7xl font-light tracking-tighter mb-4 text-white">
+                FerrousLion
+            </h1>
+            <p class="text-xl text-zinc-400 font-light max-w-md mx-auto">
+                Personal Archive
+            </p>
+            
+            <div class="mt-12">
+                <a href="#files" 
+                   class="inline-flex items-center gap-3 px-8 py-4 bg-zinc-900 hover:bg-amber-600 border border-amber-600/30 hover:border-amber-500 text-amber-400 hover:text-white rounded-2xl text-sm font-medium transition-all">
+                    <i class="fa-solid fa-folder-open"></i>
+                    BROWSE PERSONAL FILES
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Personal Files Section -->
+    <section id="files" class="py-24 bg-zinc-900">
+        <div class="max-w-5xl mx-auto px-6">
+            <div class="flex items-end justify-between mb-12">
+                <div>
+                    <span class="text-amber-500 text-sm tracking-widest font-medium">ARCHIVE</span>
+                    <h2 class="text-4xl font-light text-white">Personal Files</h2>
+                </div>
+                <div class="text-zinc-500 text-sm">12 documents • Last updated May 2026</div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Example File Cards - replace with real content -->
+                <div class="file-card bg-zinc-950 border border-zinc-800 rounded-3xl p-6 group">
+                    <div class="h-48 bg-zinc-900 rounded-2xl mb-6 flex items-center justify-center text-6xl text-amber-600/30 group-hover:text-amber-500/40 transition-colors">
+                        <i class="fa-solid fa-file-pdf"></i>
+                    </div>
+                    <h3 class="font-medium text-lg mb-1">Project Alpha Brief.pdf</h3>
+                    <p class="text-zinc-500 text-sm mb-4">Strategic overview • 12 pages</p>
+                    <button class="text-xs px-5 py-2.5 border border-zinc-700 hover:border-amber-500 text-amber-400 rounded-2xl flex items-center gap-2 hover:bg-amber-950 transition-all">
+                        <i class="fa-solid fa-download"></i> DOWNLOAD
+                    </button>
+                </div>
+
+                <div class="file-card bg-zinc-950 border border-zinc-800 rounded-3xl p-6 group">
+                    <div class="h-48 bg-zinc-900 rounded-2xl mb-6 flex items-center justify-center text-6xl text-amber-600/30 group-hover:text-amber-500/40 transition-colors">
+                        <i class="fa-solid fa-image"></i>
+                    </div>
+                    <h3 class="font-medium text-lg mb-1">Design Assets.zip</h3>
+                    <p class="text-zinc-500 text-sm mb-4">Logos, vectors &amp; branding kit</p>
+                    <button class="text-xs px-5 py-2.5 border border-zinc-700 hover:border-amber-500 text-amber-400 rounded-2xl flex items-center gap-2 hover:bg-amber-950 transition-all">
+                        <i class="fa-solid fa-download"></i> DOWNLOAD
+                    </button>
+                </div>
+
+                <div class="file-card bg-zinc-950 border border-zinc-800 rounded-3xl p-6 group">
+                    <div class="h-48 bg-zinc-900 rounded-2xl mb-6 flex items-center justify-center text-6xl text-amber-600/30 group-hover:text-amber-500/40 transition-colors">
+                        <i class="fa-solid fa-file-lines"></i>
+                    </div>
+                    <h3 class="font-medium text-lg mb-1">Research Notes.md</h3>
+                    <p class="text-zinc-500 text-sm mb-4">Updated May 3, 2026</p>
+                    <button class="text-xs px-5 py-2.5 border border-zinc-700 hover:border-amber-500 text-amber-400 rounded-2xl flex items-center gap-2 hover:bg-amber-950 transition-all">
+                        <i class="fa-solid fa-download"></i> DOWNLOAD
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About -->
+    <section id="about" class="py-24">
+        <div class="max-w-3xl mx-auto px-6 text-center">
+            <h2 class="text-4xl font-light mb-8">Private Archive</h2>
+            <p class="text-zinc-400 leading-relaxed text-lg">
+                A clean, secure space to store and share my most important documents, 
+                research, and creative assets. Built with minimalism and the FerrousLion crest as its core identity.
+            </p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-black py-12 border-t border-zinc-900">
+        <div class="max-w-5xl mx-auto px-6 text-center text-xs text-zinc-500">
+            <p>&copy; 2026 FerrousLion • All Rights Reserved</p>
+            <div class="flex justify-center gap-6 mt-6 text-lg">
+                <a href="https://x.com/FerrousLion" target="_blank" class="hover:text-amber-400 transition-colors"><i class="fa-brands fa-x-twitter"></i></a>
+                <a href="https://www.youtube.com/@ferrouslion" target="_blank" class="hover:text-amber-400 transition-colors"><i class="fa-brands fa-youtube"></i></a>
+                <a href="https://www.tiktok.com/@ferrouslion" target="_blank" class="hover:text-amber-400 transition-colors"><i class="fa-brands fa-tiktok"></i></a>
+                <a href="https://www.instagram.com/ferrouslionx/" target="_blank" class="hover:text-amber-400 transition-colors"><i class="fa-brands fa-instagram"></i></a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Tailwind script already loaded via CDN
+        console.log('%cFerrousLion Personal Archive ready', 'color:#D4A017; font-family:monospace');
+    </script>
 </body>
 </html>

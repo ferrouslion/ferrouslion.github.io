@@ -1,269 +1,177 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Homepage</title>
+    <title>FerrousLion • Personal Archive</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    
+    <!-- Favicon - replace with your cropped crest -->
+    <link rel="icon" href="https://via.placeholder.com/32x32/1f252e/D4A017?text=FL" type="image/png">
+    <link rel="apple-touch-icon" href="https://via.placeholder.com/180x180/1f252e/D4A017?text=FL">
+
     <style>
-        /* Reset default styles */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+        
         body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
+            font-family: 'Inter', system-ui, sans-serif;
         }
-
-        /* Header */
-        header {
-            background: #fff;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            position: sticky;
-            top: 0;
-            z-index: 100;
+        
+        .hero-crest {
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
         }
-
-        nav {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        
+        .hero-crest:hover {
+            transform: scale(1.05) rotate(2deg);
         }
-
-        .logo img {
-            height: 40px; /* Adjust height as needed */
-            width: auto;
-            display: block;
+        
+        .file-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-
-        nav ul {
-            list-style: none;
-            display: flex;
-            gap: 1.5rem;
+        
+        .file-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.4);
         }
-
-        nav ul li a {
-            text-decoration: none;
-            color: #333;
-            font-weight: 500;
+        
+        .nav-link {
+            position: relative;
         }
-
-        nav ul li a:hover {
-            color: #007bff;
+        
+        .nav-link:after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -2px;
+            left: 0;
+            background-color: #D4A017;
+            transition: width 0.3s ease;
         }
-
-        /* Hero Section */
-        .hero {
-            background: linear-gradient(to right, #007bff, #00c4b4);
-            color: #fff;
-            text-align: center;
-            padding: 5rem 1rem;
-        }
-
-        .hero h1 {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-        }
-
-        .hero p {
-            font-size: 1.2rem;
-            margin-bottom: 2rem;
-        }
-
-        .hero .btn {
-            background: #fff;
-            color: #007bff;
-            padding: 0.8rem 1.5rem;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: bold;
-        }
-
-        .hero .btn:hover {
-            background: #f0f0f0;
-        }
-
-        /* About Section */
-        .about {
-            max-width: 1200px;
-            margin: 3rem auto;
-            padding: 1rem;
-            text-align: center;
-        }
-
-        .about h2 {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-        }
-
-        /* Services Section */
-        .services {
-            background: #f9f9f9;
-            padding: 3rem 1rem;
-            text-align: center;
-        }
-
-        .services h2 {
-            font-size: 2rem;
-            margin-bottom: 2rem;
-        }
-
-        .service-grid {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
-        }
-
-        .service-card {
-            background: #fff;
-            padding: 2rem;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-
-        .service-card h3 {
-            margin-bottom: 1rem;
-        }
-
-        /* Contact Section */
-        .contact {
-            max-width: 600px;
-            margin: 3rem auto;
-            padding: 1rem;
-            text-align: center;
-        }
-
-        .contact h2 {
-            font-size: 2rem;
-            margin-bottom: 1rem;
-        }
-
-        .contact form {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .contact input, .contact textarea {
-            padding: 0.8rem;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 1rem;
-        }
-
-        .contact button {
-            background: #007bff;
-            color: #fff;
-            padding: 0.8rem;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .contact button:hover {
-            background: #0056b3;
-        }
-
-        /* Footer */
-        footer {
-            background: #333;
-            color: #fff;
-            text-align: center;
-            padding: 1rem;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            nav ul {
-                flex-direction: column;
-                gap: 1rem;
-            }
-
-            .hero h1 {
-                font-size: 2rem;
-            }
-
-            .hero p {
-                font-size: 1rem;
-            }
-
-            .logo img {
-                height: 30px; /* Smaller logo on mobile */
-            }
+        
+        .nav-link:hover:after {
+            width: 100%;
         }
     </style>
 </head>
-<body>
-    <!-- Header -->
-    <header>
-        <nav>
-            <div class="logo">
-                <img src="https://via.placeholder.com/150x40?text=MyBrand+Logo" alt="MyBrand Logo">
+<body class="bg-zinc-950 text-zinc-200 min-h-screen">
+    <!-- Navbar -->
+    <nav class="fixed top-0 left-0 right-0 z-50 bg-zinc-950/80 backdrop-blur-md border-b border-zinc-800">
+        <div class="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <img src="images/FerrousLion - Crest.png" alt="FerrousLion Crest" class="w-8 h-8 object-contain">
+                <span class="font-medium tracking-wider text-xl">FERROUSLION</span>
             </div>
-            <ul>
-                <li><a href="#home">Home</a></li>
-                <li><a href="#about">About</a></li>
-                <li><a href="#services">Services</a></li>
-                <li><a href="#contact">Contact</a></li>
-            </ul>
-        </nav>
+            
+            <div class="flex items-center gap-8 text-sm font-light">
+                <a href="#files" class="nav-link text-zinc-400 hover:text-white">Files</a>
+                <a href="#about" class="nav-link text-zinc-400 hover:text-white">About</a>
+                <a href="#contact" class="nav-link text-zinc-400 hover:text-white">Contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <header class="pt-28 pb-20 flex items-center justify-center min-h-screen">
+        <div class="max-w-4xl mx-auto text-center px-6">
+            <img src="images/FerrousLion - Crest.png" 
+                 alt="FerrousLion Crest" 
+                 class="hero-crest mx-auto w-80 md:w-96 h-auto mb-10 drop-shadow-2xl">
+            
+            <h1 class="text-5xl md:text-7xl font-light tracking-tighter mb-4 text-white">
+                FerrousLion
+            </h1>
+            <p class="text-xl text-zinc-400 font-light max-w-md mx-auto">
+                Personal Archive
+            </p>
+            
+            <div class="mt-12">
+                <a href="#files" 
+                   class="inline-flex items-center gap-3 px-8 py-4 bg-zinc-900 hover:bg-amber-600 border border-amber-600/30 hover:border-amber-500 text-amber-400 hover:text-white rounded-2xl text-sm font-medium transition-all">
+                    <i class="fa-solid fa-folder-open"></i>
+                    BROWSE PERSONAL FILES
+                </a>
+            </div>
+        </div>
     </header>
 
-    <!-- Hero Section -->
-    <section class="hero" id="home">
-        <h1>Welcome to MyBrand</h1>
-        <p>Your one-stop solution for awesome services.</p>
-        <a href="#contact" class="btn">Get Started</a>
-    </section>
-
-    <!-- About Section -->
-    <section class="about" id="about">
-        <h2>About Us</h2>
-        <p>We’re a passionate team dedicated to delivering top-notch solutions tailored to your needs. Our mission is to make your life easier and your business thrive.</p>
-    </section>
-
-    <!-- Services Section -->
-    <section class="services" id="services">
-        <h2>Our Services</h2>
-        <div class="service-grid">
-            <div class="service-card">
-                <h3>Service 1</h3>
-                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+    <!-- Personal Files Section -->
+    <section id="files" class="py-24 bg-zinc-900">
+        <div class="max-w-5xl mx-auto px-6">
+            <div class="flex items-end justify-between mb-12">
+                <div>
+                    <span class="text-amber-500 text-sm tracking-widest font-medium">ARCHIVE</span>
+                    <h2 class="text-4xl font-light text-white">Personal Files</h2>
+                </div>
+                <div class="text-zinc-500 text-sm">12 documents • Last updated May 2026</div>
             </div>
-            <div class="service-card">
-                <h3>Service 2</h3>
-                <p>Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
-            </div>
-            <div class="service-card">
-                <h3>Service 3</h3>
-                <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Example File Cards - replace with real content -->
+                <div class="file-card bg-zinc-950 border border-zinc-800 rounded-3xl p-6 group">
+                    <div class="h-48 bg-zinc-900 rounded-2xl mb-6 flex items-center justify-center text-6xl text-amber-600/30 group-hover:text-amber-500/40 transition-colors">
+                        <i class="fa-solid fa-file-pdf"></i>
+                    </div>
+                    <h3 class="font-medium text-lg mb-1">Project Alpha Brief.pdf</h3>
+                    <p class="text-zinc-500 text-sm mb-4">Strategic overview • 12 pages</p>
+                    <button class="text-xs px-5 py-2.5 border border-zinc-700 hover:border-amber-500 text-amber-400 rounded-2xl flex items-center gap-2 hover:bg-amber-950 transition-all">
+                        <i class="fa-solid fa-download"></i> DOWNLOAD
+                    </button>
+                </div>
+
+                <div class="file-card bg-zinc-950 border border-zinc-800 rounded-3xl p-6 group">
+                    <div class="h-48 bg-zinc-900 rounded-2xl mb-6 flex items-center justify-center text-6xl text-amber-600/30 group-hover:text-amber-500/40 transition-colors">
+                        <i class="fa-solid fa-image"></i>
+                    </div>
+                    <h3 class="font-medium text-lg mb-1">Design Assets.zip</h3>
+                    <p class="text-zinc-500 text-sm mb-4">Logos, vectors &amp; branding kit</p>
+                    <button class="text-xs px-5 py-2.5 border border-zinc-700 hover:border-amber-500 text-amber-400 rounded-2xl flex items-center gap-2 hover:bg-amber-950 transition-all">
+                        <i class="fa-solid fa-download"></i> DOWNLOAD
+                    </button>
+                </div>
+
+                <div class="file-card bg-zinc-950 border border-zinc-800 rounded-3xl p-6 group">
+                    <div class="h-48 bg-zinc-900 rounded-2xl mb-6 flex items-center justify-center text-6xl text-amber-600/30 group-hover:text-amber-500/40 transition-colors">
+                        <i class="fa-solid fa-file-lines"></i>
+                    </div>
+                    <h3 class="font-medium text-lg mb-1">Research Notes.md</h3>
+                    <p class="text-zinc-500 text-sm mb-4">Updated May 3, 2026</p>
+                    <button class="text-xs px-5 py-2.5 border border-zinc-700 hover:border-amber-500 text-amber-400 rounded-2xl flex items-center gap-2 hover:bg-amber-950 transition-all">
+                        <i class="fa-solid fa-download"></i> DOWNLOAD
+                    </button>
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- Contact Section -->
-    <section class="contact" id="contact">
-        <h2>Contact Us</h2>
-        <form>
-            <input type="text" placeholder="Your Name" required>
-            <input type="email" placeholder="Your Email" required>
-            <textarea placeholder="Your Message" rows="5" required></textarea>
-            <button type="submit">Send Message</button>
-        </form>
+    <!-- About -->
+    <section id="about" class="py-24">
+        <div class="max-w-3xl mx-auto px-6 text-center">
+            <h2 class="text-4xl font-light mb-8">Private Archive</h2>
+            <p class="text-zinc-400 leading-relaxed text-lg">
+                A clean, secure space to store and share my most important documents, 
+                research, and creative assets. Built with minimalism and the FerrousLion crest as its core identity.
+            </p>
+        </div>
     </section>
 
     <!-- Footer -->
-    <footer>
-        <p>© 2025 MyBrand. All rights reserved.</p>
+    <footer class="bg-black py-12 border-t border-zinc-900">
+        <div class="max-w-5xl mx-auto px-6 text-center text-xs text-zinc-500">
+            <p>&copy; 2026 FerrousLion • All Rights Reserved</p>
+            <div class="flex justify-center gap-6 mt-6 text-lg">
+                <a href="https://x.com/FerrousLion" target="_blank" class="hover:text-amber-400 transition-colors"><i class="fa-brands fa-x-twitter"></i></a>
+                <a href="https://www.youtube.com/@ferrouslion" target="_blank" class="hover:text-amber-400 transition-colors"><i class="fa-brands fa-youtube"></i></a>
+                <a href="https://www.tiktok.com/@ferrouslion" target="_blank" class="hover:text-amber-400 transition-colors"><i class="fa-brands fa-tiktok"></i></a>
+                <a href="https://www.instagram.com/ferrouslionx/" target="_blank" class="hover:text-amber-400 transition-colors"><i class="fa-brands fa-instagram"></i></a>
+            </div>
+        </div>
     </footer>
+
+    <script>
+        // Tailwind script already loaded via CDN
+        console.log('%cFerrousLion Personal Archive ready', 'color:#D4A017; font-family:monospace');
+    </script>
 </body>
 </html>
