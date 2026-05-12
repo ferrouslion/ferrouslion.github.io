@@ -6,86 +6,167 @@
 <title>World Time & Weather</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
-/* ── Reset & tokens ─────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   RESET & DESIGN TOKENS
+═══════════════════════════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #f5f5f3;
-  --surface: #ffffff;
-  --surface2: #f0f0ee;
-  --border: rgba(0,0,0,.10);
-  --border-strong: rgba(0,0,0,.18);
-  --text: #1a1a1a;
-  --text2: #666;
-  --text3: #999;
-  --accent: #2563eb;
-  --accent-bg: #eff6ff;
-  --accent-text: #1d4ed8;
-  --hover: #f0f0ee;
-  --danger: #dc2626;
-  --danger-bg: #fef2f2;
-  --success: #16a34a;
-  --tag-bg: #e8f0fe;
-  --tag-text: #1d4ed8;
-  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
-  --radius: 8px;
-  --radius-lg: 12px;
-  --sidebar-width: 340px;
-  --header-h: 56px;
+  /* Colors */
+  --bg:           #f5f5f3;
+  --surface:      #ffffff;
+  --surface2:     #f0f0ee;
+  --border:       rgba(0,0,0,.10);
+  --border-strong:rgba(0,0,0,.18);
+  --text:         #1a1a1a;
+  --text2:        #666;
+  --text3:        #999;
+  --accent:       #2563eb;
+  --hover:        #ebebea;
+  --danger:       #dc2626;
+  --danger-bg:    #fef2f2;
+  --success:      #16a34a;
+  --tag-bg:       #e8f0fe;
+  --tag-text:     #1d4ed8;
+  /* Shadows */
+  --shadow-sm:    0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+  --shadow-md:    0 4px 12px rgba(0,0,0,.12);
+  --shadow-lg:    0 8px 32px rgba(0,0,0,.18);
+  /* Radii */
+  --radius:       8px;
+  --radius-lg:    12px;
+  --radius-xl:    20px;
+  /* Layout — mobile defaults */
+  --sidebar-w:    320px;   /* used only on laptop+ */
+  --drawer-peek:  68px;    /* visible strip when drawer is closed */
+  --safe-top:     env(safe-area-inset-top,    0px);
+  --safe-bottom:  env(safe-area-inset-bottom, 0px);
+  --safe-left:    env(safe-area-inset-left,   0px);
+  --safe-right:   env(safe-area-inset-right,  0px);
 }
 
 body.dark {
-  --bg: #111;
-  --surface: #1c1c1c;
-  --surface2: #242424;
-  --border: rgba(255,255,255,.09);
-  --border-strong: rgba(255,255,255,.16);
-  --text: #f0f0f0;
-  --text2: #a0a0a0;
-  --text3: #666;
-  --accent: #3b82f6;
-  --accent-bg: #1e3a5f;
-  --accent-text: #93c5fd;
-  --hover: #2a2a2a;
-  --danger: #f87171;
-  --danger-bg: #3f1f1f;
-  --success: #4ade80;
-  --tag-bg: #1e3a5f;
-  --tag-text: #93c5fd;
+  --bg:           #111;
+  --surface:      #1c1c1c;
+  --surface2:     #262626;
+  --border:       rgba(255,255,255,.08);
+  --border-strong:rgba(255,255,255,.15);
+  --text:         #f0f0f0;
+  --text2:        #a0a0a0;
+  --text3:        #555;
+  --accent:       #3b82f6;
+  --hover:        #2a2a2a;
+  --danger:       #f87171;
+  --danger-bg:    #3f1f1f;
+  --success:      #4ade80;
+  --tag-bg:       #1e3a5f;
+  --tag-text:     #93c5fd;
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+/* ═══════════════════════════════════════════════════════════
+   BASE
+═══════════════════════════════════════════════════════════ */
+html, body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background: var(--bg);
   color: var(--text);
-  height: 100vh;
+  height: 100%;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   APP SHELL
+   Mobile / small tablet : column — map fills top, drawer slides up from bottom
+   Laptop+ (≥900px)      : row    — sidebar left, map right
+═══════════════════════════════════════════════════════════ */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  position: relative;
   overflow: hidden;
 }
 
-/* ── Layout ─────────────────────────────────────────────── */
-.app { display: flex; height: 100vh; }
+/* ─── Map wrapper ─── */
+#map-wrap {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+  /* leave room so map controls aren't hidden under the drawer peek */
+  padding-bottom: var(--drawer-peek);
+}
+#map { width: 100%; height: 100%; }
 
-/* ── Sidebar ─────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   SIDEBAR / DRAWER
+   Mobile   : fixed bottom drawer, peeks --drawer-peek above screen bottom
+   ≥600px   : taller drawer
+   ≥900px   : becomes a normal left-side panel
+═══════════════════════════════════════════════════════════ */
 #sidebar {
-  width: var(--sidebar-width);
-  min-width: var(--sidebar-width);
   display: flex;
   flex-direction: column;
   background: var(--surface);
-  border-right: 1px solid var(--border);
   overflow: hidden;
-  transition: width .25s ease;
+  /* ── mobile: slide-up drawer ── */
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 60dvh;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 24px rgba(0,0,0,.14);
+  transform: translateY(calc(100% - var(--drawer-peek)));
+  transition: transform .32s cubic-bezier(.4,0,.2,1);
+  z-index: 300;
+  /* account for home indicator on iPhone */
+  padding-bottom: var(--safe-bottom);
 }
 
+/* Drawer handle pill */
+#drawer-handle {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+}
+#drawer-handle::before {
+  content: '';
+  width: 36px; height: 4px;
+  background: var(--border-strong);
+  border-radius: 2px;
+}
+
+/* Drawer open state */
+#sidebar.drawer-open {
+  transform: translateY(0);
+}
+
+/* Scrim — dims map when drawer is fully open on mobile */
+#drawer-scrim {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.35);
+  z-index: 299;
+  opacity: 0;
+  transition: opacity .32s;
+}
+#drawer-scrim.visible { opacity: 1; }
+
+/* Desktop collapse */
 #sidebar.collapsed {
-  width: 0;
-  min-width: 0;
-  border-right: none;
+  transform: translateX(-100%);
 }
 
+/* ─── Sidebar top ─── */
 .sidebar-top {
   flex-shrink: 0;
-  padding: 14px 14px 0;
+  padding: 6px 14px 0;
   border-bottom: 1px solid var(--border);
 }
 
@@ -93,122 +174,113 @@ body {
   font-size: 14px;
   font-weight: 600;
   letter-spacing: -.2px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 6px;
 }
-
-.app-title-left { display: flex; align-items: center; gap: 6px; }
 .app-title-icon { font-size: 18px; line-height: 1; }
 
-.search-row {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 10px;
-}
+.search-row { display: flex; gap: 6px; margin-bottom: 8px; }
 
-.search-wrap {
-  position: relative;
-  flex: 1;
-}
-
+.search-wrap { position: relative; flex: 1; }
 .search-wrap input {
   width: 100%;
-  padding: 7px 28px 7px 9px;
-  font-size: 13px;
+  /* 16px prevents iOS auto-zoom on focus */
+  font-size: 16px;
+  padding: 8px 32px 8px 10px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   background: var(--surface2);
   color: var(--text);
   outline: none;
   transition: border-color .15s, box-shadow .15s;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .search-wrap input::placeholder { color: var(--text3); }
-.search-wrap input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent); }
+.search-wrap input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
+}
 .search-clear {
-  position: absolute;
-  right: 7px;
-  top: 50%;
+  position: absolute; right: 8px; top: 50%;
   transform: translateY(-50%);
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--text3);
-  font-size: 13px;
-  display: none;
+  background: none; border: none; cursor: pointer;
+  color: var(--text3); font-size: 14px;
+  display: none; padding: 4px;
   line-height: 1;
-  padding: 2px;
 }
 .search-wrap input:not(:placeholder-shown) ~ .search-clear { display: block; }
 
-/* sort select */
 .sort-select {
-  padding: 6px 8px;
-  font-size: 12px;
+  padding: 8px 10px;
+  font-size: 14px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   background: var(--surface2);
   color: var(--text);
-  cursor: pointer;
-  outline: none;
+  cursor: pointer; outline: none;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
-/* Tab bar */
-.tabs {
-  display: flex;
-  gap: 0;
-  margin: 0 -14px;
-}
+/* Tabs */
+.tabs { display: flex; margin: 0 -14px; }
 .tab {
   flex: 1;
-  padding: 9px 4px;
-  font-size: 12px;
-  font-weight: 500;
-  text-align: center;
-  cursor: pointer;
-  border: none;
-  background: none;
+  padding: 0 4px;
+  font-size: 13px; font-weight: 500;
+  text-align: center; cursor: pointer;
+  border: none; background: none;
   color: var(--text2);
   border-bottom: 2px solid transparent;
   transition: color .15s, border-color .15s;
   white-space: nowrap;
+  min-height: 44px;  /* WCAG touch target */
+  display: flex; align-items: center; justify-content: center;
 }
 .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
 /* Panels */
-.panel { flex: 1; overflow-y: auto; padding: 8px 10px; }
+.panel {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 10px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
 .panel.hidden { display: none; }
 
-/* City browse list */
+/* ─── Browse list ─── */
 #city-list { list-style: none; }
 #city-list li {
-  padding: 8px 8px;
+  padding: 10px 8px;
   cursor: pointer;
   border-radius: var(--radius);
-  font-size: 13px;
+  font-size: 14px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 6px;
-  transition: background .1s;
+  gap: 8px;
   border: 1px solid transparent;
+  transition: background .1s;
+  min-height: 48px;
 }
-#city-list li:hover:not(.is-added) { background: var(--hover); border-color: var(--border); }
-#city-list li.is-added { opacity: .4; cursor: default; }
-#city-list li .city-sub { font-size: 11px; color: var(--text2); }
+#city-list li:hover:not(.is-added),
+#city-list li:active:not(.is-added) {
+  background: var(--hover); border-color: var(--border);
+}
+#city-list li.is-added { opacity: .38; cursor: default; }
+#city-list li .city-sub { font-size: 12px; color: var(--text2); margin-top: 1px; }
 .tz-chip {
-  font-size: 10px;
-  font-weight: 500;
-  color: var(--tag-text);
-  background: var(--tag-bg);
-  padding: 2px 6px;
-  border-radius: 4px;
-  white-space: nowrap;
-  flex-shrink: 0;
+  font-size: 10px; font-weight: 500;
+  color: var(--tag-text); background: var(--tag-bg);
+  padding: 2px 7px; border-radius: 4px;
+  white-space: nowrap; flex-shrink: 0;
 }
 
-/* Selected city cards */
+/* ─── Selected city cards ─── */
 .city-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -216,51 +288,46 @@ body {
   padding: 12px 12px 10px;
   margin-bottom: 8px;
   transition: border-color .15s;
-  position: relative;
 }
 .city-card:hover { border-color: var(--border-strong); }
-.city-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 2px; }
-.city-card-name { font-size: 13px; font-weight: 600; }
-.city-card-country { font-size: 11px; color: var(--text2); }
+.city-card-header {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; margin-bottom: 2px;
+}
+.city-card-name   { font-size: 14px; font-weight: 600; }
+.city-card-country{ font-size: 11px; color: var(--text2); }
 .city-card-time {
-  font-size: 26px;
-  font-weight: 300;
-  letter-spacing: -1px;
+  font-size: 30px; font-weight: 300;
+  letter-spacing: -1.5px;
   font-variant-numeric: tabular-nums;
-  line-height: 1;
-  margin: 6px 0 2px;
+  line-height: 1.05; margin: 6px 0 2px;
 }
 .city-card-date { font-size: 11px; color: var(--text2); margin-bottom: 8px; }
 .city-card-weather {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  font-size: 12px;
-  color: var(--text2);
+  display: flex; gap: 8px; flex-wrap: wrap;
+  font-size: 12px; color: var(--text2);
   align-items: center;
   border-top: 1px solid var(--border);
   padding-top: 8px;
-  margin-top: 2px;
 }
 .city-card-weather .wicon { font-size: 16px; }
-.city-card-weather .wtemp { font-size: 14px; font-weight: 500; color: var(--text); }
+.city-card-weather .wtemp { font-size: 13px; font-weight: 600; color: var(--text); }
 
 /* Remove button */
 .btn-remove {
   background: none;
   border: 1px solid var(--border);
   color: var(--text2);
-  padding: 3px 8px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 11px;
-  line-height: 1.4;
-  transition: all .15s;
-  flex-shrink: 0;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer; font-size: 12px;
+  transition: all .15s; flex-shrink: 0;
+  min-height: 32px;
 }
-.btn-remove:hover { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); }
+.btn-remove:hover,
+.btn-remove:active { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); }
 
-/* Loading spinner */
+/* Spinner */
 .spinner {
   display: inline-block;
   width: 10px; height: 10px;
@@ -274,160 +341,191 @@ body {
 
 /* Empty state */
 .empty {
-  text-align: center;
-  padding: 40px 16px;
-  color: var(--text3);
-  font-size: 13px;
-  line-height: 1.6;
+  text-align: center; padding: 48px 16px;
+  color: var(--text3); font-size: 13px; line-height: 1.7;
 }
 
-/* Sidebar footer */
+/* ─── Sidebar footer ─── */
 .sidebar-footer {
   flex-shrink: 0;
   padding: 8px 10px;
   border-top: 1px solid var(--border);
-  display: flex;
-  gap: 5px;
-  align-items: center;
+  display: flex; gap: 5px; align-items: center;
+  flex-wrap: wrap;           /* wrap gracefully on small widths */
   background: var(--surface);
 }
 .btn-sm {
-  padding: 5px 9px;
-  font-size: 11px;
-  font-weight: 500;
+  padding: 7px 11px;
+  font-size: 12px; font-weight: 500;
   border-radius: 6px;
   border: 1px solid var(--border-strong);
-  background: var(--surface2);
-  color: var(--text);
-  cursor: pointer;
-  transition: all .15s;
-  white-space: nowrap;
+  background: var(--surface2); color: var(--text);
+  cursor: pointer; transition: all .15s;
+  white-space: nowrap; min-height: 36px;
 }
-.btn-sm:hover { background: var(--hover); border-color: var(--accent); color: var(--accent); }
-.btn-sm.danger:hover { border-color: var(--danger); color: var(--danger); background: var(--danger-bg); }
-.btn-sm.icon { padding: 5px 7px; font-size: 14px; margin-left: auto; }
+.btn-sm:hover,
+.btn-sm:active { background: var(--hover); border-color: var(--accent); color: var(--accent); }
+.btn-sm.danger:hover,
+.btn-sm.danger:active { border-color: var(--danger); color: var(--danger); background: var(--danger-bg); }
+.btn-sm.icon { padding: 7px 10px; font-size: 15px; margin-left: auto; }
 
-/* ── Map toggle button ───────────────────────────────────── */
+/* ─── Toggle sidebar button ─── */
 #toggle-sidebar {
   position: absolute;
-  top: 14px;
-  left: 14px;
+  top: 14px; left: 14px;
   z-index: 1000;
   background: var(--surface);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius);
-  padding: 6px 9px;
-  font-size: 13px;
-  cursor: pointer;
-  color: var(--text);
-  box-shadow: var(--shadow);
-  transition: all .15s;
+  padding: 0;
+  font-size: 16px;
+  cursor: pointer; color: var(--text);
+  box-shadow: var(--shadow-sm);
+  transition: background .15s;
+  width: 40px; height: 40px;
+  display: none;   /* hidden on mobile — drawer handle is used instead */
+  align-items: center; justify-content: center;
 }
-#toggle-sidebar:hover { background: var(--hover); }
+#toggle-sidebar:hover,
+#toggle-sidebar:active { background: var(--hover); }
 
-/* ── Map container ───────────────────────────────────────── */
-#map-wrap { flex: 1; position: relative; }
-#map { width: 100%; height: 100%; }
-
-/* Leaflet tooltip override */
+/* ─── Leaflet city tooltip ─── */
 .city-tooltip {
   background: var(--surface) !important;
   border: 1.5px solid var(--accent) !important;
   border-radius: 6px !important;
-  padding: 5px 8px !important;
+  padding: 4px 8px !important;
   font-size: 11px !important;
   font-family: inherit !important;
   color: var(--text) !important;
-  box-shadow: var(--shadow) !important;
-  white-space: nowrap;
-  line-height: 1.5;
+  box-shadow: var(--shadow-sm) !important;
+  white-space: nowrap; line-height: 1.5;
   pointer-events: none;
 }
 .city-tooltip::before { display: none !important; }
 .city-tooltip-name { font-weight: 600; font-size: 12px; }
 .city-tooltip-line { color: var(--text2); font-size: 11px; }
 
-/* ── Modal overlay ───────────────────────────────────────── */
+/* ─── Preferences modal ─── */
 .modal-overlay {
   display: none;
-  position: absolute;
-  inset: 0;
+  position: fixed; inset: 0;
   background: rgba(0,0,0,.5);
   z-index: 5000;
-  align-items: center;
+  /* bottom sheet on mobile */
+  align-items: flex-end;
   justify-content: center;
 }
 .modal-overlay.open { display: flex; }
+
 .modal {
   background: var(--surface);
-  border-radius: var(--radius-lg);
-  padding: 22px 22px 18px;
-  width: 310px;
-  max-height: 90vh;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  padding: 0 20px calc(20px + var(--safe-bottom));
+  width: 100%;
+  max-height: 92dvh;
   overflow-y: auto;
-  border: 1px solid var(--border-strong);
-  box-shadow: 0 8px 32px rgba(0,0,0,.18);
+  border-top: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-lg);
+  -webkit-overflow-scrolling: touch;
 }
-.modal h2 { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
-.pref-group { margin-bottom: 13px; }
-.pref-group label { display: block; font-size: 11px; font-weight: 500; color: var(--text2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .4px; }
-.pref-group select { width: 100%; padding: 7px 9px; font-size: 13px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface2); color: var(--text); outline: none; }
+/* Handle pill */
+.modal::before {
+  content: '';
+  display: block;
+  width: 36px; height: 4px;
+  background: var(--border-strong);
+  border-radius: 2px;
+  margin: 14px auto 16px;
+}
+.modal h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+.pref-group { margin-bottom: 14px; }
+.pref-group label {
+  display: block; font-size: 11px; font-weight: 500;
+  color: var(--text2); margin-bottom: 5px;
+  text-transform: uppercase; letter-spacing: .4px;
+}
+.pref-group select {
+  width: 100%; padding: 10px 9px; font-size: 16px;
+  border: 1px solid var(--border-strong); border-radius: var(--radius);
+  background: var(--surface2); color: var(--text); outline: none;
+  -webkit-appearance: none; appearance: none;
+}
 .pref-group select:focus { border-color: var(--accent); }
-.check-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer; }
-.check-row input { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
-.check-row span { font-size: 13px; color: var(--text); }
-.modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; border-top: 1px solid var(--border); padding-top: 14px; }
-.btn-primary { padding: 7px 16px; font-size: 13px; font-weight: 500; border-radius: 6px; border: none; background: var(--accent); color: #fff; cursor: pointer; transition: opacity .15s; }
-.btn-primary:hover { opacity: .88; }
-.btn-secondary { padding: 7px 14px; font-size: 13px; border-radius: 6px; border: 1px solid var(--border-strong); background: var(--surface2); color: var(--text); cursor: pointer; transition: background .15s; }
-.btn-secondary:hover { background: var(--hover); }
+.check-row {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 4px; cursor: pointer;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.check-row:last-of-type { border-bottom: none; }
+.check-row input {
+  accent-color: var(--accent);
+  width: 20px; height: 20px;
+  cursor: pointer; flex-shrink: 0;
+}
+.check-row span { font-size: 15px; color: var(--text); }
 
-/* ── Status bar ──────────────────────────────────────────── */
+.modal-footer {
+  display: flex; gap: 10px;
+  margin-top: 16px; border-top: 1px solid var(--border); padding-top: 14px;
+  /* stacked on mobile */
+  flex-direction: column-reverse;
+}
+.btn-primary {
+  padding: 13px 20px; font-size: 15px; font-weight: 500;
+  border-radius: 10px; border: none; background: var(--accent);
+  color: #fff; cursor: pointer; transition: opacity .15s;
+  text-align: center;
+}
+.btn-primary:hover,
+.btn-primary:active { opacity: .88; }
+.btn-secondary {
+  padding: 12px 16px; font-size: 15px;
+  border-radius: 10px; border: 1px solid var(--border-strong);
+  background: var(--surface2); color: var(--text);
+  cursor: pointer; transition: background .15s; text-align: center;
+}
+.btn-secondary:hover,
+.btn-secondary:active { background: var(--hover); }
+
+/* ─── Status bar ─── */
 #status-bar {
   position: absolute;
-  bottom: 10px;
-  right: 10px;
+  bottom: 10px; right: 10px;
   z-index: 1000;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 5px 10px;
-  font-size: 11px;
-  color: var(--text2);
-  box-shadow: var(--shadow);
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  font-size: 11px; color: var(--text2);
+  box-shadow: var(--shadow-sm);
+  align-items: center; gap: 6px;
+  display: none;   /* shown on laptop+ */
 }
 #status-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--success);
-  flex-shrink: 0;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--success); flex-shrink: 0;
   transition: background .3s;
 }
 #status-dot.loading { background: var(--accent); animation: pulse 1s infinite; }
-#status-dot.error { background: var(--danger); }
+#status-dot.error   { background: var(--danger); }
 @keyframes pulse { 0%,100%{opacity:.3}50%{opacity:1} }
 
-/* ── Clock widget overlay (right side of map) ────────────── */
+/* ─── Clock panel ─── */
 #clock-panel {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: 14px; right: 14px;
   z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-direction: column; gap: 6px;
   pointer-events: none;
+  display: none;   /* shown on laptop+ */
 }
 .clock-mini {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 6px 10px;
-  box-shadow: var(--shadow);
-  font-size: 11px;
+  box-shadow: var(--shadow-sm);
   line-height: 1.4;
   min-width: 120px;
   pointer-events: auto;
@@ -436,7 +534,7 @@ body {
 .clock-mini-time { font-size: 16px; font-weight: 300; letter-spacing: -.5px; font-variant-numeric: tabular-nums; color: var(--text); }
 .clock-mini-meta { font-size: 10px; color: var(--text2); }
 
-/* ── Cookie consent banner ───────────────────────────── */
+/* ─── Cookie consent ─── */
 #consent-banner {
   display: none;
   position: fixed;
@@ -444,33 +542,185 @@ body {
   z-index: 9999;
   background: var(--surface);
   border-top: 1px solid var(--border-strong);
-  padding: 14px 20px;
-  align-items: center;
-  gap: 14px;
+  padding: 14px 16px calc(14px + var(--safe-bottom));
+  align-items: flex-start; gap: 12px;
   box-shadow: 0 -2px 12px rgba(0,0,0,.1);
-  flex-wrap: wrap;
+  flex-direction: column;
 }
 #consent-banner p {
-  flex: 1;
-  font-size: 13px;
-  color: var(--text2);
-  line-height: 1.5;
-  min-width: 220px;
+  font-size: 13px; color: var(--text2); line-height: 1.5;
 }
 #consent-banner p strong { color: var(--text); font-weight: 600; }
-.consent-btns { display: flex; gap: 8px; flex-shrink: 0; }
+.consent-btns { display: flex; gap: 8px; width: 100%; }
+.consent-btns .btn-secondary,
+.consent-btns .btn-primary { flex: 1; }
 
-/* scrollbar slim */
-::-webkit-scrollbar { width: 5px; }
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+
+/* ═══════════════════════════════════════════════════════════
+   BREAKPOINT: LARGE PHONE / SMALL TABLET  ≥ 480px
+   (iPhone Plus/Max landscape, Samsung Galaxy, etc.)
+═══════════════════════════════════════════════════════════ */
+@media (min-width: 480px) {
+  :root { --drawer-peek: 76px; }
+
+  #sidebar { height: 65dvh; }
+
+  .city-card-time { font-size: 32px; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BREAKPOINT: TABLET PORTRAIT  ≥ 600px
+   (iPad mini / Air portrait, large Android tablets)
+═══════════════════════════════════════════════════════════ */
+@media (min-width: 600px) {
+  :root { --drawer-peek: 80px; }
+
+  #sidebar { height: 58dvh; }
+
+  /* Modal becomes a centred card instead of bottom sheet */
+  .modal-overlay { align-items: center; }
+  .modal {
+    border-radius: var(--radius-xl);
+    width: min(500px, 90vw);
+    padding: 24px 28px 24px;
+    max-height: 88dvh;
+  }
+  .modal::before { display: none; }
+
+  /* Buttons side-by-side in modal */
+  .modal-footer { flex-direction: row; justify-content: flex-end; }
+  .btn-primary, .btn-secondary { padding: 10px 20px; font-size: 14px; border-radius: 8px; }
+
+  /* Consent row instead of column */
+  #consent-banner { flex-direction: row; align-items: center; }
+  .consent-btns { width: auto; flex-shrink: 0; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BREAKPOINT: LAPTOP / TABLET LANDSCAPE  ≥ 900px
+   (iPad Pro landscape, MacBook, Windows laptop)
+   Key change: stacked → side-by-side layout
+═══════════════════════════════════════════════════════════ */
+@media (min-width: 900px) {
+  /* Side-by-side */
+  .app { flex-direction: row; }
+
+  /* Map no longer needs bottom padding for the drawer */
+  #map-wrap { padding-bottom: 0; }
+
+  /* Sidebar becomes a left panel — drawer mechanics retired */
+  #sidebar {
+    position: relative;
+    bottom: auto; left: auto; right: auto;
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    height: 100dvh;
+    border-radius: 0;
+    border-top: none;
+    border-right: 1px solid var(--border);
+    box-shadow: none;
+    transform: none !important;
+    transition: width .25s ease, min-width .25s ease, opacity .25s ease;
+    padding-bottom: 0;
+  }
+
+  #sidebar.collapsed {
+    width: 0;
+    min-width: 0;
+    opacity: 0;
+    border-right: none;
+    overflow: hidden;
+  }
+
+  #drawer-handle { display: none; }
+  #drawer-scrim  { display: none !important; }
+
+  .sidebar-top { padding: 14px 14px 0; }
+
+  /* Toggle button visible on laptop+ */
+  #toggle-sidebar { display: flex; }
+
+  /* Status bar and clock panel revealed */
+  #status-bar  { display: flex; }
+  #clock-panel { display: flex; }
+
+  /* Smaller, centred modal */
+  .modal-overlay { align-items: center; }
+  .modal {
+    border-radius: var(--radius-lg);
+    width: 360px;
+    max-height: 90dvh;
+    padding: 22px 24px 20px;
+  }
+  .modal::before { display: none; }
+  .modal-footer { flex-direction: row; justify-content: flex-end; }
+  .btn-primary, .btn-secondary { padding: 8px 18px; font-size: 13px; border-radius: 7px; }
+  .check-row span { font-size: 14px; }
+  .pref-group select { font-size: 13px; padding: 8px 9px; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BREAKPOINT: WIDE LAPTOP  ≥ 1100px
+═══════════════════════════════════════════════════════════ */
+@media (min-width: 1100px) {
+  :root { --sidebar-w: 340px; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BREAKPOINT: DESKTOP  ≥ 1280px
+   (24" iMac, FHD/QHD monitors)
+═══════════════════════════════════════════════════════════ */
+@media (min-width: 1280px) {
+  :root { --sidebar-w: 380px; }
+
+  .city-card-time { font-size: 34px; }
+
+  /* Two-column grid for city cards */
+  #selected-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  #selected-list .city-card { margin-bottom: 0; }
+  /* Empty state spans both columns */
+  #selected-list .empty { grid-column: 1 / -1; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BREAKPOINT: WIDE DESKTOP  ≥ 1600px
+   (27" iMac, ultrawide monitors)
+═══════════════════════════════════════════════════════════ */
+@media (min-width: 1600px) {
+  :root { --sidebar-w: 420px; }
+
+  .city-card-time { font-size: 36px; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   LANDSCAPE PHONE  — short viewport, horizontal orientation
+   Shrink drawer peek so map is still usable
+═══════════════════════════════════════════════════════════ */
+@media (max-height: 500px) and (max-width: 899px) {
+  :root { --drawer-peek: 52px; }
+  #sidebar { height: 80dvh; }
+  .app-title { margin-bottom: 4px; }
+  .search-row { margin-bottom: 4px; }
+}
 </style>
 </head>
 <body>
 
 <div class="app" id="app">
-  <!-- Sidebar -->
+  <!-- Drawer scrim (mobile only) -->
+  <div id="drawer-scrim" onclick="closeDrawer()"></div>
+
+  <!-- Sidebar / Drawer -->
   <div id="sidebar">
+    <div id="drawer-handle" onclick="toggleDrawer()" aria-label="Toggle panel"></div>
     <div class="sidebar-top">
       <div class="app-title">
         <div class="app-title-left">
@@ -728,7 +978,7 @@ const ALL_CITIES = [
   {name:"Dallas",country:"United States",region:"North America",lat:32.7767,lng:-96.797,tz:"America/Chicago"},
   {name:"Delhi",country:"India",region:"Asia",lat:28.6139,lng:77.209,tz:"Asia/Kolkata"},
   {name:"Denver",country:"United States",region:"North America",lat:39.7392,lng:-104.9903,tz:"America/Denver"},
-  {name:"Destin",country:"United States",region:"North America",lat:30.3935,lng:-86.495,tz:"America/Chicago"},
+  {name:"Destin",country:"United States",region:"North America",lat:30.3935,lng:-86.4958,tz:"America/Chicago"},
   {name:"Dhaka",country:"Bangladesh",region:"Asia",lat:23.8103,lng:90.4125,tz:"Asia/Dhaka"},
   {name:"Dublin",country:"Ireland",region:"Europe",lat:53.3498,lng:-6.2603,tz:"Europe/Dublin"},
   {name:"Dubai",country:"UAE",region:"Middle East",lat:25.2048,lng:55.2708,tz:"Asia/Dubai"},
@@ -1363,10 +1613,64 @@ function clearSearch() {
   renderBrowseList();
 }
 
-function toggleSidebar() {
-  sidebarOpen = !sidebarOpen;
-  document.getElementById("sidebar").classList.toggle("collapsed", !sidebarOpen);
+function isDesktop() {
+  return window.matchMedia("(min-width: 900px)").matches;
 }
+
+function toggleSidebar() {
+  if (isDesktop()) {
+    sidebarOpen = !sidebarOpen;
+    document.getElementById("sidebar").classList.toggle("collapsed", !sidebarOpen);
+  } else {
+    toggleDrawer();
+  }
+}
+
+let drawerOpen = false;
+
+function openDrawer() {
+  drawerOpen = true;
+  const sidebar = document.getElementById("sidebar");
+  const scrim   = document.getElementById("drawer-scrim");
+  sidebar.classList.add("drawer-open");
+  scrim.style.display = "block";
+  requestAnimationFrame(() => scrim.classList.add("visible"));
+}
+
+function closeDrawer() {
+  drawerOpen = false;
+  const sidebar = document.getElementById("sidebar");
+  const scrim   = document.getElementById("drawer-scrim");
+  sidebar.classList.remove("drawer-open");
+  scrim.classList.remove("visible");
+  setTimeout(() => { scrim.style.display = "none"; }, 320);
+}
+
+function toggleDrawer() {
+  drawerOpen ? closeDrawer() : openDrawer();
+}
+
+/* ── Swipe-up / swipe-down on drawer handle ── */
+(function () {
+  let startY = 0, startTime = 0;
+  const handle = document.getElementById("drawer-handle");
+
+  handle.addEventListener("touchstart", e => {
+    startY    = e.touches[0].clientY;
+    startTime = Date.now();
+  }, { passive: true });
+
+  handle.addEventListener("touchend", e => {
+    const dy = startY - e.changedTouches[0].clientY;
+    const dt = Date.now() - startTime;
+    // Swipe up → open; swipe down → close; tap → toggle
+    if (Math.abs(dy) > 20 && dt < 400) {
+      dy > 0 ? openDrawer() : closeDrawer();
+    } else if (Math.abs(dy) < 8) {
+      toggleDrawer();
+    }
+  }, { passive: true });
+})();
 
 function slugify(name) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
