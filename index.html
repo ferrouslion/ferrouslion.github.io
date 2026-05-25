@@ -78,27 +78,41 @@
     </nav>
 
     <!-- Hero -->
-    <header class="pt-28 pb-20 flex items-center justify-center min-h-screen">
-        <div class="max-w-4xl mx-auto text-center px-6">
-            <img src="images/FerrousLion - Crest.png" 
-                 alt="FerrousLion Crest" 
-                 class="hero-crest mx-auto w-80 md:w-96 h-auto mb-10 drop-shadow-2xl">
-            
-            <h1 class="text-5xl md:text-7xl font-light tracking-tighter mb-4 text-white">
-                FerrousLion
-            </h1>
-            <p class="text-xl text-zinc-400 font-light max-w-md mx-auto">
-                Personal Archive
-            </p>
-            
-            <div class="mt-12">
-                <a href="#files" 
-                   class="inline-flex items-center gap-3 px-8 py-4 bg-zinc-900 hover:bg-amber-600 border border-amber-600/30 hover:border-amber-500 text-amber-400 hover:text-white rounded-2xl text-sm font-medium transition-all">
-                    <i class="fa-solid fa-folder-open"></i>
-                    BROWSE PERSONAL FILES
-                </a>
-            </div>
+    <header class="pt-28 pb-20 flex items-center justify-center min-h-screen relative overflow-hidden">
+      <!-- Subtle gamer background -->
+      <div class="absolute inset-0 bg-[radial-gradient(at_center,#451a03_0%,transparent_70%)] opacity-40"></div>
+      
+      <div class="max-w-5xl mx-auto text-center px-6 relative z-10">
+        <!-- Larger, more graphical logo -->
+        <div class="relative mx-auto mb-12 group">
+          <img src="images/FerrousLion - Crest.png" 
+               alt="FerrousLion Crest" 
+               class="hero-crest mx-auto w-[420px] md:w-[520px] h-auto drop-shadow-[0_0_60px_rgb(245,158,11)] 
+                      group-hover:drop-shadow-[0_0_90px_rgb(245,158,11)] transition-all duration-700">
+          <!-- Neon glow ring -->
+          <div class="absolute inset-0 border border-amber-400/30 rounded-full scale-110 animate-pulse"></div>
         </div>
+    
+        <h1 class="text-6xl md:text-8xl font-bold tracking-tighter mb-6 bg-gradient-to-r from-amber-300 via-white to-amber-300 bg-clip-text text-transparent">
+          FERROUSLION
+        </h1>
+        
+        <p class="text-2xl md:text-3xl text-zinc-400 font-light tracking-wide mb-4">
+          PERSONAL ARCHIVE
+        </p>
+        
+        <div class="text-amber-500/80 text-sm tracking-[4px] uppercase mb-12 font-mono">
+          LEVEL 01 • EST. 2026
+        </div>
+    
+        <a href="#files" 
+           class="inline-flex items-center gap-4 px-10 py-5 bg-gradient-to-r from-amber-600 to-orange-600 
+                  hover:from-amber-500 hover:to-orange-500 text-white rounded-2xl text-lg font-medium 
+                  shadow-xl shadow-amber-900/50 transition-all hover:scale-105">
+          <i class="fa-solid fa-gamepad"></i>
+          ENTER THE ARCHIVE
+        </a>
+      </div>
     </header>
 
     <!-- Personal Files Section -->
