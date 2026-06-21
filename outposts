@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FerrousLion • Starfield Outposts</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap');
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .title-font { font-family: 'Space Grotesk', sans-serif; }
+    .nav-link { position: relative; }
+    .nav-link:after { content: ''; position: absolute; width: 0; height: 2px; bottom: -2px; left: 0; background-color: #D4A017; transition: width 0.3s ease; }
+    .nav-link:hover:after { width: 100%; }
+    .outpost-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .outpost-card:hover { transform: translateY(-4px); box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1); }
+    .neon-glow { box-shadow: 0 0 15px rgb(245 158 11 / 0.15); }
+    .resource-pill { background-color: #27251f; color: #d1d5db; }
+  </style>
+</head>
+<body class="bg-zinc-950 text-zinc-200">
+  <!-- Navbar -->
+  <nav class="fixed top-0 left-0 right-0 z-50 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <a href="index.html" class="flex items-center gap-3">
+        <img src="images/FerrousLion - Crest.png" alt="FerrousLion" class="h-9 w-auto">
+        <span class="font-bold text-2xl tracking-tighter text-amber-400">FERROUSLION</span>
+      </a>
+      <div class="flex items-center gap-8 text-sm font-medium">
+        <a href="index.html#files" class="nav-link text-zinc-300 hover:text-amber-400">Files</a>
+        <a href="gallery.html" class="nav-link text-zinc-300 hover:text-amber-400">Gallery</a>
+        <a href="blog.html" class="nav-link text-zinc-300 hover:text-amber-400">Blog</a>
+        <a href="outposts.html" class="nav-link text-amber-400">Outposts</a>
+        <a href="world_clock.html" class="nav-link text-zinc-300 hover:text-amber-400">World Clock</a>
+        <a href="index.html#about" class="nav-link text-zinc-300 hover:text-amber-400">About</a>
+        <a href="index.html#contact" class="nav-link text-zinc-300 hover:text-amber-400">Contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Header -->
+  <div class="pt-20 pb-10 border-b border-zinc-800">
+    <div class="max-w-7xl mx-auto px-6 flex items-center justify-between">
+      <div>
+        <div class="flex items-center gap-3 mb-2">
+          <span class="px-3 py-1 text-xs font-mono tracking-[2px] bg-amber-400/10 text-amber-400 rounded">STARFIELD</span>
+        </div>
+        <h1 class="text-6xl font-bold tracking-tighter title-font">OUTPOSTS ARCHIVE</h1>
+        <p class="text-xl text-zinc-400 mt-2">FerrousLion Command Data • Live from your sheet</p>
+      </div>
+      <button onclick="loadData()" 
+              class="flex items-center gap-2 px-5 py-2.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-amber-500/50 rounded-2xl text-sm transition-colors">
+        <i class="fa-solid fa-sync"></i> <span>Refresh Data</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="max-w-7xl mx-auto px-6 pt-8">
+    <div class="flex items-end gap-4 mb-6">
+      <div class="flex-1 max-w-md">
+        <label class="block text-xs tracking-widest text-amber-400 mb-1.5 font-medium">SELECT OUTPOST CODE</label>
+        <select id="outpost-select" 
+                class="w-full bg-zinc-900 border border-zinc-700 focus:border-amber-500 text-white rounded-2xl px-5 py-3 text-lg font-medium focus:outline-none">
+          <option value="">— Choose Outpost —</option>
+        </select>
+      </div>
+      <button onclick="showAllOutposts()" 
+              class="px-6 py-3 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 hover:border-amber-500/50 rounded-2xl text-sm transition-colors flex items-center gap-2">
+        <i class="fa-solid fa-th-large"></i> <span>SHOW ALL</span>
+      </button>
+    </div>
+
+    <!-- Cards Container -->
+    <div id="cards-container" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6 min-h-[420px]">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+
+  <script>
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTLprHwefguWFyEomVz_fQXUoCu48UP5ZPCdptIvJK45V_6Gmw8wKoMF2SpPA5giSU14gKhNNrRO0qW/pub?gid=1029208066&single=true&output=csv'; // ←←← REPLACE THIS
+    let outposts = [];
+
+    async function loadData() {
+      const container = document.getElementById('cards-container');
+      container.innerHTML = `<div class="col-span-full flex items-center justify-center py-12 text-zinc-400"><i class="fa-solid fa-spinner fa-spin mr-3"></i> Loading outpost data...</div>`;
+
+      Papa.parse(CSV_URL, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          outposts = results.data.filter(row => row['Outpost Code'] || row['Code']); // adjust header if needed
+          populateSelect();
+          // Auto-load first outpost
+          if (outposts.length > 0) {
+            document.getElementById('outpost-select').value = outposts[0]['Outpost Code'] || outposts[0]['Code'];
+            renderCards(outposts[0]);
+          }
+        }
+      });
+    }
+
+    function populateSelect() {
+      const select = document.getElementById('outpost-select');
+      select.innerHTML = '<option value="">— Choose Outpost —</option>';
+      
+      // Sort by code
+      const sorted = [...outposts].sort((a, b) => 
+        (a['Outpost Code'] || a['Code'] || '').localeCompare(b['Outpost Code'] || b['Code'] || '')
+      );
+
+      sorted.forEach(row => {
+        const code = row['Outpost Code'] || row['Code'] || 'N/A';
+        const name = row['Name'] || row['Outpost Name'] || '';
+        const option = document.createElement('option');
+        option.value = code;
+        option.textContent = `${code} — ${name}`;
+        select.appendChild(option);
+      });
+
+      select.onchange = () => {
+        const code = select.value;
+        if (!code) {
+          document.getElementById('cards-container').innerHTML = '';
+          return;
+        }
+        const outpost = outposts.find(o => (o['Outpost Code'] || o['Code']) === code);
+        if (outpost) renderCards(outpost);
+      };
+    }
+
+    function renderCards(outpost) {
+      const container = document.getElementById('cards-container');
+      container.innerHTML = '';
+
+      // === EDIT THESE to match YOUR exact column headers ===
+      const code = outpost['Outpost Code'] || outpost['Code'] || '—';
+      const name = outpost['Name'] || outpost['Outpost Name'] || 'Unnamed Outpost';
+      const planet = outpost['Planet'] || '—';
+      const system = outpost['System'] || '—';
+      const coords = outpost['Coordinates'] || outpost['Location'] || '—';
+      const biome = outpost['Biome'] || '—';
+      const resourcesRaw = outpost['Resources'] || outpost['Resource List'] || '';
+      const crew = outpost['Crew'] || outpost['Crew Capacity'] || '—';
+      const power = outpost['Power'] || outpost['Power Production'] || '—';
+      const storage = outpost['Storage'] || '—';
+      const notes = outpost['Notes'] || outpost['Description'] || '';
+
+      // Card 1: Overview
+      container.innerHTML += `
+        <div class="outpost-card bg-zinc-900 border border-zinc-700 rounded-3xl p-6 neon-glow">
+          <div class="flex items-center gap-3 mb-4">
+            <i class="fa-solid fa-rocket text-amber-400 text-xl"></i>
+            <h3 class="font-semibold text-xl tracking-tight">OVERVIEW</h3>
+          </div>
+          <div class="space-y-3 text-sm">
+            <div><span class="text-zinc-400">Code</span><div class="font-mono text-amber-400 text-lg">${code}</div></div>
+            <div><span class="text-zinc-400">Name</span><div class="font-medium">${name}</div></div>
+            <div class="grid grid-cols-2 gap-3">
+              <div><span class="text-zinc-400">Planet</span><div>${planet}</div></div>
+              <div><span class="text-zinc-400">System</span><div>${system}</div></div>
+            </div>
+          </div>
+        </div>`;
+
+      // Card 2: Location
+      container.innerHTML += `
+        <div class="outpost-card bg-zinc-900 border border-zinc-700 rounded-3xl p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <i class="fa-solid fa-map-marked text-amber-400 text-xl"></i>
+            <h3 class="font-semibold text-xl tracking-tight">LOCATION</h3>
+          </div>
+          <div class="space-y-3 text-sm">
+            <div><span class="text-zinc-400">Coordinates</span><div class="font-mono">${coords}</div></div>
+            <div><span class="text-zinc-400">Biome</span><div>${biome}</div></div>
+            ${notes ? `<div class="pt-2 border-t border-zinc-800"><span class="text-zinc-400">Notes</span><div class="text-zinc-300 mt-1">${notes}</div></div>` : ''}
+          </div>
+        </div>`;
+
+      // Card 3: Resources (as pills)
+      const resources = resourcesRaw ? resourcesRaw.split(',').map(r => r.trim()).filter(Boolean) : [];
+      let resHTML = resources.length 
+        ? resources.map(r => `<span class="resource-pill px-3 py-1 rounded-full text-xs font-medium">${r}</span>`).join('')
+        : '<span class="text-zinc-400">No resources listed</span>';
+      
+      container.innerHTML += `
+        <div class="outpost-card bg-zinc-900 border border-zinc-700 rounded-3xl p-6 lg:col-span-2 xl:col-span-1">
+          <div class="flex items-center gap-3 mb-4">
+            <i class="fa-solid fa-industry text-amber-400 text-xl"></i>
+            <h3 class="font-semibold text-xl tracking-tight">RESOURCES</h3>
+          </div>
+          <div class="flex flex-wrap gap-2">${resHTML}</div>
+        </div>`;
+
+      // Card 4: Operations
+      container.innerHTML += `
+        <div class="outpost-card bg-zinc-900 border border-zinc-700 rounded-3xl p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <i class="fa-solid fa-cogs text-amber-400 text-xl"></i>
+            <h3 class="font-semibold text-xl tracking-tight">OPERATIONS</h3>
+          </div>
+          <div class="grid grid-cols-3 gap-4 text-center">
+            <div><div class="text-2xl font-semibold text-amber-400">${crew}</div><div class="text-xs text-zinc-400">CREW</div></div>
+            <div><div class="text-2xl font-semibold text-amber-400">${power}</div><div class="text-xs text-zinc-400">POWER</div></div>
+            <div><div class="text-2xl font-semibold text-amber-400">${storage}</div><div class="text-xs text-zinc-400">STORAGE</div></div>
+          </div>
+        </div>`;
+    }
+
+    function showAllOutposts() {
+      const container = document.getElementById('cards-container');
+      container.innerHTML = '';
+      const sorted = [...outposts].sort((a,b) => (a['Outpost Code']||'').localeCompare(b['Outpost Code']||''));
+
+      sorted.forEach(row => {
+        const code = row['Outpost Code'] || row['Code'] || '—';
+        const name = row['Name'] || 'Unnamed';
+        const planet = row['Planet'] || '—';
+        container.innerHTML += `
+          <div onclick="selectOutpost('${code}')" class="outpost-card cursor-pointer bg-zinc-900 border border-zinc-700 hover:border-amber-500/60 rounded-3xl p-5 text-sm">
+            <div class="font-mono text-amber-400">${code}</div>
+            <div class="font-semibold">${name}</div>
+            <div class="text-xs text-zinc-400 mt-1">${planet}</div>
+          </div>`;
+      });
+    }
+
+    function selectOutpost(code) {
+      document.getElementById('outpost-select').value = code;
+      const outpost = outposts.find(o => (o['Outpost Code'] || o['Code']) === code);
+      if (outpost) renderCards(outpost);
+      window.scrollTo({ top: 180, behavior: 'smooth' });
+    }
+
+    // Boot
+    window.onload = () => {
+      if (CSV_URL.includes('PASTE_YOUR')) {
+        document.getElementById('cards-container').innerHTML = 
+          `<div class="col-span-full text-center py-12 text-amber-400">Replace CSV_URL in the script with your published Google Sheet CSV link.</div>`;
+      } else {
+        loadData();
+      }
+    };
+  </script>
+</body>
+</html>
