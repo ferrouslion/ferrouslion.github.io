@@ -1,1840 +1,330 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>World Time & Weather</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<style>
-/* ═══════════════════════════════════════════════════════════
-   RESET & DESIGN TOKENS
-═══════════════════════════════════════════════════════════ */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>World Time &amp; Weather</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Screen reader only utility class */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
 
-:root {
-  /* Colors */
-  --bg:           #f5f5f3;
-  --surface:      #ffffff;
-  --surface2:     #f0f0ee;
-  --border:       rgba(0,0,0,.10);
-  --border-strong:rgba(0,0,0,.18);
-  --text:         #1a1a1a;
-  --text2:        #666;
-  --text3:        #999;
-  --accent:       #2563eb;
-  --hover:        #ebebea;
-  --danger:       #dc2626;
-  --danger-bg:    #fef2f2;
-  --success:      #16a34a;
-  --tag-bg:       #e8f0fe;
-  --tag-text:     #1d4ed8;
-  /* Shadows */
-  --shadow-sm:    0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
-  --shadow-md:    0 4px 12px rgba(0,0,0,.12);
-  --shadow-lg:    0 8px 32px rgba(0,0,0,.18);
-  /* Radii */
-  --radius:       8px;
-  --radius-lg:    12px;
-  --radius-xl:    20px;
-  /* Layout — mobile defaults */
-  --sidebar-w:    320px;   /* used only on laptop+ */
-  --drawer-peek:  52px;    /* visible strip when drawer is closed — matches handle height */
-  --safe-top:     env(safe-area-inset-top,    0px);
-  --safe-bottom:  env(safe-area-inset-bottom, 0px);
-  --safe-left:    env(safe-area-inset-left,   0px);
-  --safe-right:   env(safe-area-inset-right,  0px);
-}
+    /* Meeting Planner Bar Styling */
+    .meeting-planner-bar {
+      background: rgba(20, 20, 25, 0.9);
+      color: #fff;
+      padding: 12px 20px;
+      border-top: 1px solid #333;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
 
-body.dark {
-  --bg:           #111;
-  --surface:      #1c1c1c;
-  --surface2:     #262626;
-  --border:       rgba(255,255,255,.08);
-  --border-strong:rgba(255,255,255,.15);
-  --text:         #f0f0f0;
-  --text2:        #a0a0a0;
-  --text3:        #555;
-  --accent:       #3b82f6;
-  --hover:        #2a2a2a;
-  --danger:       #f87171;
-  --danger-bg:    #3f1f1f;
-  --success:      #4ade80;
-  --tag-bg:       #1e3a5f;
-  --tag-text:     #93c5fd;
-}
+    .planner-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.9rem;
+    }
 
-/* ═══════════════════════════════════════════════════════════
-   BASE
-═══════════════════════════════════════════════════════════ */
-html, body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  height: 100%;
-  overflow: hidden;
-  -webkit-tap-highlight-color: transparent;
-  -webkit-text-size-adjust: 100%;
-}
+    .planner-header span {
+      font-weight: 600;
+      color: #38ef7d;
+    }
 
-/* ═══════════════════════════════════════════════════════════
-   APP SHELL
-   Mobile / small tablet : column — map fills top, drawer slides up from bottom
-   Laptop+ (≥900px)      : row    — sidebar left, map right
-═══════════════════════════════════════════════════════════ */
-.app {
-  display: flex;
-  flex-direction: column;
-  height: 100dvh;
-  position: relative;
-  overflow: hidden;
-}
+    .meeting-planner-bar input[type="range"] {
+      width: 100%;
+      cursor: pointer;
+    }
 
-/* ─── Map wrapper ─── */
-#map-wrap {
-  flex: 1;
-  position: relative;
-  min-height: 0;
-  /* Establish an explicit stacking context BELOW the drawer.
-     The drawer is position:fixed with z-index:300; the map must
-     sit in a lower context so it never paints over the drawer. */
-  z-index: 0;
-  isolation: isolate;
-  /* leave room so map controls aren't hidden under the drawer peek */
-  padding-bottom: var(--drawer-peek);
-}
-#map { width: 100%; height: 100%; }
+    .reset-btn {
+      background: #333;
+      color: #fff;
+      border: 1px solid #555;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
 
-/* ═══════════════════════════════════════════════════════════
-   SIDEBAR / DRAWER
-   Mobile   : fixed bottom drawer, peeks --drawer-peek above screen bottom
-   ≥600px   : taller drawer
-   ≥900px   : becomes a normal left-side panel
-═══════════════════════════════════════════════════════════ */
-#sidebar {
-  display: flex;
-  flex-direction: column;
-  background: var(--surface);
-  overflow: hidden;
-  /* ── mobile: slide-up drawer ── */
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  height: 60dvh;
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  border-top: 1px solid var(--border);
-  box-shadow: 0 -4px 24px rgba(0,0,0,.14);
-  transform: translateY(calc(100% - var(--drawer-peek)));
-  transition: transform .32s cubic-bezier(.4,0,.2,1);
-  z-index: 1000;
-  /* account for home indicator on iPhone */
-  padding-bottom: var(--safe-bottom);
-}
+    .reset-btn:hover {
+      background: #444;
+    }
 
-/* Drawer handle pull-tab */
-#drawer-handle {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  height: 48px;
-  cursor: pointer;
-  touch-action: none;
-  user-select: none;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-}
-.drawer-pill {
-  width: 36px; height: 4px;
-  background: var(--border-strong);
-  border-radius: 2px;
-}
-.drawer-tab-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--text2);
-  font-weight: 500;
-  letter-spacing: .3px;
-  text-transform: uppercase;
-}
-.drawer-chevron {
-  font-size: 9px;
-  color: var(--text3);
-  transition: transform .3s;
-  display: inline-block;
-}
-.drawer-label { color: var(--text2); }
+    .file-input-wrapper {
+      display: inline-block;
+    }
 
-/* Drawer open state */
-#sidebar.drawer-open {
-  transform: translateY(0);
-}
+    .btn-secondary {
+      background: #2a2d34;
+      color: #fff;
+      border: 1px solid #444;
+      padding: 8px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
 
-/* Scrim — dims map when drawer is fully open on mobile */
-#drawer-scrim {
-  display: none;
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,.35);
-  z-index: 999;
-  opacity: 0;
-  transition: opacity .32s;
-}
-#drawer-scrim.visible { opacity: 1; }
-
-/* Desktop collapse */
-#sidebar.collapsed {
-  transform: translateX(-100%);
-}
-
-/* ─── Sidebar top ─── */
-.sidebar-top {
-  flex-shrink: 0;
-  padding: 6px 14px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.app-title {
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: -.2px;
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.app-title-icon { font-size: 18px; line-height: 1; }
-
-.search-row { display: flex; gap: 6px; margin-bottom: 8px; }
-
-.search-wrap { position: relative; flex: 1; }
-.search-wrap input {
-  width: 100%;
-  /* 16px prevents iOS auto-zoom on focus */
-  font-size: 16px;
-  padding: 8px 32px 8px 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--surface2);
-  color: var(--text);
-  outline: none;
-  transition: border-color .15s, box-shadow .15s;
-  -webkit-appearance: none;
-  appearance: none;
-}
-.search-wrap input::placeholder { color: var(--text3); }
-.search-wrap input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
-}
-.search-clear {
-  position: absolute; right: 8px; top: 50%;
-  transform: translateY(-50%);
-  background: none; border: none; cursor: pointer;
-  color: var(--text3); font-size: 14px;
-  display: none; padding: 4px;
-  line-height: 1;
-}
-.search-wrap input:not(:placeholder-shown) ~ .search-clear { display: block; }
-
-.sort-select {
-  padding: 8px 10px;
-  font-size: 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  background: var(--surface2);
-  color: var(--text);
-  cursor: pointer; outline: none;
-  -webkit-appearance: none;
-  appearance: none;
-}
-
-/* Tabs */
-.tabs { display: flex; margin: 0 -14px; }
-.tab {
-  flex: 1;
-  padding: 0 4px;
-  font-size: 13px; font-weight: 500;
-  text-align: center; cursor: pointer;
-  border: none; background: none;
-  color: var(--text2);
-  border-bottom: 2px solid transparent;
-  transition: color .15s, border-color .15s;
-  white-space: nowrap;
-  min-height: 44px;  /* WCAG touch target */
-  display: flex; align-items: center; justify-content: center;
-}
-.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-
-/* Panels */
-.panel {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px 10px;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-}
-.panel.hidden { display: none; }
-
-/* ─── Browse list ─── */
-#city-list { list-style: none; }
-#city-list li {
-  padding: 10px 8px;
-  cursor: pointer;
-  border-radius: var(--radius);
-  font-size: 14px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid transparent;
-  transition: background .1s;
-  min-height: 48px;
-}
-#city-list li:hover:not(.is-added),
-#city-list li:active:not(.is-added) {
-  background: var(--hover); border-color: var(--border);
-}
-#city-list li.is-added { opacity: .38; cursor: default; }
-#city-list li .city-sub { font-size: 12px; color: var(--text2); margin-top: 1px; }
-.tz-chip {
-  font-size: 10px; font-weight: 500;
-  color: var(--tag-text); background: var(--tag-bg);
-  padding: 2px 7px; border-radius: 4px;
-  white-space: nowrap; flex-shrink: 0;
-}
-
-/* ─── Selected city cards ─── */
-.city-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 12px 12px 10px;
-  margin-bottom: 8px;
-  transition: border-color .15s;
-}
-.city-card:hover { border-color: var(--border-strong); }
-.city-card-header {
-  display: flex; align-items: flex-start;
-  justify-content: space-between; margin-bottom: 2px;
-}
-.city-card-name   { font-size: 14px; font-weight: 600; }
-.city-card-country{ font-size: 11px; color: var(--text2); }
-.city-card-time {
-  font-size: 30px; font-weight: 300;
-  letter-spacing: -1.5px;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.05; margin: 6px 0 2px;
-}
-.city-card-date { font-size: 11px; color: var(--text2); margin-bottom: 8px; }
-.city-card-weather {
-  display: flex; gap: 8px; flex-wrap: wrap;
-  font-size: 12px; color: var(--text2);
-  align-items: center;
-  border-top: 1px solid var(--border);
-  padding-top: 8px;
-}
-.city-card-weather .wicon { font-size: 16px; }
-.city-card-weather .wtemp { font-size: 13px; font-weight: 600; color: var(--text); }
-
-/* Remove button */
-.btn-remove {
-  background: none;
-  border: 1px solid var(--border);
-  color: var(--text2);
-  padding: 5px 10px;
-  border-radius: 6px;
-  cursor: pointer; font-size: 12px;
-  transition: all .15s; flex-shrink: 0;
-  min-height: 32px;
-}
-.btn-remove:hover,
-.btn-remove:active { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); }
-
-/* Spinner */
-.spinner {
-  display: inline-block;
-  width: 10px; height: 10px;
-  border: 1.5px solid var(--border-strong);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin .6s linear infinite;
-  vertical-align: middle;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* Empty state */
-.empty {
-  text-align: center; padding: 48px 16px;
-  color: var(--text3); font-size: 13px; line-height: 1.7;
-}
-
-/* ─── Sidebar footer ─── */
-.sidebar-footer {
-  flex-shrink: 0;
-  padding: 8px 10px;
-  border-top: 1px solid var(--border);
-  display: flex; gap: 5px; align-items: center;
-  flex-wrap: wrap;           /* wrap gracefully on small widths */
-  background: var(--surface);
-}
-.btn-sm {
-  padding: 7px 11px;
-  font-size: 12px; font-weight: 500;
-  border-radius: 6px;
-  border: 1px solid var(--border-strong);
-  background: var(--surface2); color: var(--text);
-  cursor: pointer; transition: all .15s;
-  white-space: nowrap; min-height: 36px;
-}
-.btn-sm:hover,
-.btn-sm:active { background: var(--hover); border-color: var(--accent); color: var(--accent); }
-.btn-sm.danger:hover,
-.btn-sm.danger:active { border-color: var(--danger); color: var(--danger); background: var(--danger-bg); }
-.btn-sm.icon { padding: 7px 10px; font-size: 15px; margin-left: auto; }
-
-/* ─── Toggle sidebar button ─── */
-#toggle-sidebar {
-  position: absolute;
-  top: 14px; left: 14px;
-  z-index: 1000;
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius);
-  padding: 0;
-  font-size: 16px;
-  cursor: pointer; color: var(--text);
-  box-shadow: var(--shadow-sm);
-  transition: background .15s;
-  width: 40px; height: 40px;
-  display: none;   /* hidden on mobile — drawer handle is used instead */
-  align-items: center; justify-content: center;
-}
-#toggle-sidebar:hover,
-#toggle-sidebar:active { background: var(--hover); }
-
-/* ─── Leaflet city tooltip ─── */
-.city-tooltip {
-  background: var(--surface) !important;
-  border: 1.5px solid var(--accent) !important;
-  border-radius: 6px !important;
-  padding: 4px 8px !important;
-  font-size: 11px !important;
-  font-family: inherit !important;
-  color: var(--text) !important;
-  box-shadow: var(--shadow-sm) !important;
-  white-space: nowrap; line-height: 1.5;
-  pointer-events: none;
-}
-.city-tooltip::before { display: none !important; }
-.city-tooltip-name { font-weight: 600; font-size: 12px; }
-.city-tooltip-line { color: var(--text2); font-size: 11px; }
-
-/* ─── Preferences modal ─── */
-.modal-overlay {
-  display: none;
-  position: fixed; inset: 0;
-  background: rgba(0,0,0,.5);
-  z-index: 5000;
-  /* bottom sheet on mobile */
-  align-items: flex-end;
-  justify-content: center;
-}
-.modal-overlay.open { display: flex; }
-
-.modal {
-  background: var(--surface);
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  padding: 0 20px calc(20px + var(--safe-bottom));
-  width: 100%;
-  max-height: 92dvh;
-  overflow-y: auto;
-  border-top: 1px solid var(--border-strong);
-  box-shadow: var(--shadow-lg);
-  -webkit-overflow-scrolling: touch;
-}
-/* Handle pill */
-.modal::before {
-  content: '';
-  display: block;
-  width: 36px; height: 4px;
-  background: var(--border-strong);
-  border-radius: 2px;
-  margin: 14px auto 16px;
-}
-.modal h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
-.pref-group { margin-bottom: 14px; }
-.pref-group label {
-  display: block; font-size: 11px; font-weight: 500;
-  color: var(--text2); margin-bottom: 5px;
-  text-transform: uppercase; letter-spacing: .4px;
-}
-.pref-group select {
-  width: 100%; padding: 10px 9px; font-size: 16px;
-  border: 1px solid var(--border-strong); border-radius: var(--radius);
-  background: var(--surface2); color: var(--text); outline: none;
-  -webkit-appearance: none; appearance: none;
-}
-.pref-group select:focus { border-color: var(--accent); }
-.check-row {
-  display: flex; align-items: center; gap: 12px;
-  margin-bottom: 4px; cursor: pointer;
-  padding: 10px 0; border-bottom: 1px solid var(--border);
-}
-.check-row:last-of-type { border-bottom: none; }
-.check-row input {
-  accent-color: var(--accent);
-  width: 20px; height: 20px;
-  cursor: pointer; flex-shrink: 0;
-}
-.check-row span { font-size: 15px; color: var(--text); }
-
-.modal-footer {
-  display: flex; gap: 10px;
-  margin-top: 16px; border-top: 1px solid var(--border); padding-top: 14px;
-  /* stacked on mobile */
-  flex-direction: column-reverse;
-}
-.btn-primary {
-  padding: 13px 20px; font-size: 15px; font-weight: 500;
-  border-radius: 10px; border: none; background: var(--accent);
-  color: #fff; cursor: pointer; transition: opacity .15s;
-  text-align: center;
-}
-.btn-primary:hover,
-.btn-primary:active { opacity: .88; }
-.btn-secondary {
-  padding: 12px 16px; font-size: 15px;
-  border-radius: 10px; border: 1px solid var(--border-strong);
-  background: var(--surface2); color: var(--text);
-  cursor: pointer; transition: background .15s; text-align: center;
-}
-.btn-secondary:hover,
-.btn-secondary:active { background: var(--hover); }
-
-/* ─── Status bar ─── */
-#status-bar {
-  position: absolute;
-  bottom: 10px; right: 10px;
-  z-index: 1000;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 5px 10px;
-  font-size: 11px; color: var(--text2);
-  box-shadow: var(--shadow-sm);
-  align-items: center; gap: 6px;
-  display: none;   /* shown on laptop+ */
-}
-#status-dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: var(--success); flex-shrink: 0;
-  transition: background .3s;
-}
-#status-dot.loading { background: var(--accent); animation: pulse 1s infinite; }
-#status-dot.error   { background: var(--danger); }
-@keyframes pulse { 0%,100%{opacity:.3}50%{opacity:1} }
-
-/* ─── Clock panel ─── */
-#clock-panel {
-  position: absolute;
-  top: 14px; right: 14px;
-  z-index: 1000;
-  flex-direction: column; gap: 6px;
-  pointer-events: none;
-  display: none;   /* shown on laptop+ */
-}
-.clock-mini {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 6px 10px;
-  box-shadow: var(--shadow-sm);
-  line-height: 1.4;
-  min-width: 120px;
-  pointer-events: auto;
-}
-.clock-mini-city { font-weight: 600; font-size: 11px; color: var(--text); }
-.clock-mini-time { font-size: 16px; font-weight: 300; letter-spacing: -.5px; font-variant-numeric: tabular-nums; color: var(--text); }
-.clock-mini-meta { font-size: 10px; color: var(--text2); }
-
-/* ─── Cookie consent ─── */
-#consent-banner {
-  display: none;
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  z-index: 9999;
-  background: var(--surface);
-  border-top: 1px solid var(--border-strong);
-  padding: 14px 16px calc(14px + var(--safe-bottom));
-  align-items: flex-start; gap: 12px;
-  box-shadow: 0 -2px 12px rgba(0,0,0,.1);
-  flex-direction: column;
-}
-#consent-banner p {
-  font-size: 13px; color: var(--text2); line-height: 1.5;
-}
-#consent-banner p strong { color: var(--text); font-weight: 600; }
-.consent-btns { display: flex; gap: 8px; width: 100%; }
-.consent-btns .btn-secondary,
-.consent-btns .btn-primary { flex: 1; }
-
-/* Scrollbar */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
-
-/* ═══════════════════════════════════════════════════════════
-   BREAKPOINT: LARGE PHONE / SMALL TABLET  ≥ 480px
-   (iPhone Plus/Max landscape, Samsung Galaxy, etc.)
-═══════════════════════════════════════════════════════════ */
-@media (min-width: 480px) {
-  :root { --drawer-peek: 56px; }
-
-  #sidebar { height: 65dvh; }
-
-  .city-card-time { font-size: 32px; }
-}
-
-/* ═══════════════════════════════════════════════════════════
-   BREAKPOINT: TABLET PORTRAIT  ≥ 600px
-   (iPad mini / Air portrait, large Android tablets)
-═══════════════════════════════════════════════════════════ */
-@media (min-width: 600px) {
-  :root { --drawer-peek: 56px; }
-
-  #sidebar { height: 58dvh; }
-
-  /* Modal becomes a centred card instead of bottom sheet */
-  .modal-overlay { align-items: center; }
-  .modal {
-    border-radius: var(--radius-xl);
-    width: min(500px, 90vw);
-    padding: 24px 28px 24px;
-    max-height: 88dvh;
-  }
-  .modal::before { display: none; }
-
-  /* Buttons side-by-side in modal */
-  .modal-footer { flex-direction: row; justify-content: flex-end; }
-  .btn-primary, .btn-secondary { padding: 10px 20px; font-size: 14px; border-radius: 8px; }
-
-  /* Consent row instead of column */
-  #consent-banner { flex-direction: row; align-items: center; }
-  .consent-btns { width: auto; flex-shrink: 0; }
-}
-
-/* ═══════════════════════════════════════════════════════════
-   BREAKPOINT: LAPTOP / TABLET LANDSCAPE  ≥ 900px
-   (iPad Pro landscape, MacBook, Windows laptop)
-   Key change: stacked → side-by-side layout
-═══════════════════════════════════════════════════════════ */
-@media (min-width: 900px) {
-  /* Side-by-side */
-  .app { flex-direction: row; }
-
-  /* Map no longer needs bottom padding for the drawer */
-  #map-wrap {
-    padding-bottom: 0;
-    z-index: auto;
-    isolation: auto;
-  }
-
-  /* Sidebar becomes a left panel — drawer mechanics retired */
-  #sidebar {
-    position: relative;
-    bottom: auto; left: auto; right: auto;
-    width: var(--sidebar-w);
-    min-width: var(--sidebar-w);
-    height: 100dvh;
-    border-radius: 0;
-    border-top: none;
-    border-right: 1px solid var(--border);
-    box-shadow: none;
-    transform: none !important;
-    transition: width .25s ease, min-width .25s ease, opacity .25s ease;
-    padding-bottom: 0;
-  }
-
-  #sidebar.collapsed {
-    width: 0;
-    min-width: 0;
-    opacity: 0;
-    border-right: none;
-    overflow: hidden;
-  }
-
-  #drawer-handle { display: none; }
-  #drawer-scrim  { display: none !important; }
-
-  .sidebar-top { padding: 14px 14px 0; }
-
-  /* Toggle button visible on laptop+ */
-  #toggle-sidebar { display: flex; }
-
-  /* Status bar and clock panel revealed */
-  #status-bar  { display: flex; }
-  #clock-panel { display: flex; }
-
-  /* Smaller, centred modal */
-  .modal-overlay { align-items: center; }
-  .modal {
-    border-radius: var(--radius-lg);
-    width: 360px;
-    max-height: 90dvh;
-    padding: 22px 24px 20px;
-  }
-  .modal::before { display: none; }
-  .modal-footer { flex-direction: row; justify-content: flex-end; }
-  .btn-primary, .btn-secondary { padding: 8px 18px; font-size: 13px; border-radius: 7px; }
-  .check-row span { font-size: 14px; }
-  .pref-group select { font-size: 13px; padding: 8px 9px; }
-}
-
-/* ═══════════════════════════════════════════════════════════
-   BREAKPOINT: WIDE LAPTOP  ≥ 1100px
-═══════════════════════════════════════════════════════════ */
-@media (min-width: 1100px) {
-  :root { --sidebar-w: 340px; }
-}
-
-/* ═══════════════════════════════════════════════════════════
-   BREAKPOINT: DESKTOP  ≥ 1280px
-   (24" iMac, FHD/QHD monitors)
-═══════════════════════════════════════════════════════════ */
-@media (min-width: 1280px) {
-  :root { --sidebar-w: 380px; }
-
-  .city-card-time { font-size: 34px; }
-
-  /* Two-column grid for city cards */
-  #selected-list {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-  #selected-list .city-card { margin-bottom: 0; }
-  /* Empty state spans both columns */
-  #selected-list .empty { grid-column: 1 / -1; }
-}
-
-/* ═══════════════════════════════════════════════════════════
-   BREAKPOINT: WIDE DESKTOP  ≥ 1600px
-   (27" iMac, ultrawide monitors)
-═══════════════════════════════════════════════════════════ */
-@media (min-width: 1600px) {
-  :root { --sidebar-w: 420px; }
-
-  .city-card-time { font-size: 36px; }
-}
-
-/* ═══════════════════════════════════════════════════════════
-   LANDSCAPE PHONE  — short viewport, horizontal orientation
-   Shrink drawer peek so map is still usable
-═══════════════════════════════════════════════════════════ */
-@media (max-height: 500px) and (max-width: 899px) {
-  :root { --drawer-peek: 48px; }
-  #sidebar { height: 80dvh; }
-  .app-title { margin-bottom: 4px; }
-  .search-row { margin-bottom: 4px; }
-}
-</style>
+    .btn-secondary:hover {
+      background: #3a3f49;
+    }
+  </style>
 </head>
 <body>
 
-<div class="app" id="app">
-  <!-- Drawer scrim (mobile only) -->
-  <div id="drawer-scrim" onclick="closeDrawer()"></div>
+  <div id="app-container">
+    <!-- Map Canvas Container -->
+    <div id="map" role="region" aria-label="World Map Clocks"></div>
 
-  <!-- Sidebar / Drawer -->
-  <div id="sidebar">
-    <div id="drawer-handle" onclick="toggleDrawer()" aria-label="Toggle panel">
-      <div class="drawer-pill"></div>
-      <div class="drawer-tab-row">
-        <span class="drawer-chevron" id="drawer-chevron">▲</span>
-        <span class="drawer-label" id="drawer-label">Cities</span>
-        <span class="drawer-chevron" id="drawer-chevron2">▲</span>
+    <!-- Sliding Drawer Panel -->
+    <div id="drawer">
+      <button 
+        type="button" 
+        id="panelToggleBtn"
+        aria-expanded="false" 
+        aria-controls="citiesDrawerPanel" 
+        aria-label="Toggle Cities List Panel"
+        onclick="togglePanel()"
+      >
+        <div class="handle-bar"></div>
+        <div class="btn-content">
+          <span class="icon">▲</span>
+          <span>Cities</span>
+          <span class="icon">▲</span>
+        </div>
+      </button>
+
+      <div id="citiesDrawerPanel" role="region" aria-label="Saved Cities and Weather List" hidden>
+        <div class="panel-header">
+          <div class="title-group">
+            <span aria-hidden="true">🌍</span>
+            <h2>World Time &amp; Weather</h2>
+          </div>
+          <div class="controls-group">
+            <label for="citySortSelect" class="sr-only">Sort Cities By</label>
+            <select id="citySortSelect" onchange="handleSortChange(this.value)">
+              <option value="name">A–Z</option>
+              <option value="region">Region</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="city-list-wrapper">
+          <ul id="cityList" aria-live="polite" aria-relevant="additions removals">
+            <!-- Dynamic city cards injected here -->
+          </ul>
+        </div>
+      </div>
+
+      <!-- Meeting Planner Scrub Controller -->
+      <div class="meeting-planner-bar" aria-label="Meeting Planner Time Scrub">
+        <div class="planner-header">
+          <label for="timeScrubber"><strong>Meeting Planner:</strong> Scrub Time</label>
+          <span id="scrubOffsetLabel" aria-live="polite">Current Time (Live)</span>
+          <button type="button" class="reset-btn" onclick="resetTimeScrub()">Reset to Live</button>
+        </div>
+        <input 
+          type="range" 
+          id="timeScrubber" 
+          min="-12" 
+          max="12" 
+          value="0" 
+          step="0.5" 
+          oninput="updateScrubbedTime(this.value)"
+          aria-valuemin="-12" 
+          aria-valuemax="12" 
+          aria-valuenow="0" 
+          aria-valuetext="Current Time"
+        >
+      </div>
+
+      <!-- Bottom Toolbar / Status -->
+      <div id="toolbar">
+        <button type="button" class="btn-secondary" onclick="openPreferences()">Preferences</button>
+        <div id="statusIndicator">
+          <span class="dot"></span>
+          <span id="statusText">Ready</span>
+        </div>
       </div>
     </div>
-    <div class="sidebar-top">
-      <div class="app-title">
-        <div class="app-title-left">
-          <span class="app-title-icon">🌍</span>
-          World Time &amp; Weather
-        </div>
-      </div>
-      <div class="search-row">
-        <div class="search-wrap">
-          <input type="text" id="search" placeholder="Search cities or countries…" autocomplete="off">
-          <button class="search-clear" onclick="clearSearch()">✕</button>
-        </div>
-        <select class="sort-select" id="sort-select" onchange="renderBrowseList()">
-          <option value="name">A–Z</option>
-          <option value="region">Region</option>
+  </div>
+
+  <!-- Preferences Modal Dialog -->
+  <dialog id="preferencesModal" aria-labelledby="prefHeading">
+    <div class="modal-content">
+      <h2 id="prefHeading">Preferences</h2>
+
+      <div class="field-group">
+        <label for="tempUnitSelect">Temperature Unit</label>
+        <select id="tempUnitSelect" name="temperatureUnit">
+          <option value="celsius">Celsius (°C)</option>
+          <option value="fahrenheit">Fahrenheit (°F)</option>
         </select>
       </div>
-      <div class="tabs">
-        <button class="tab active" onclick="switchTab('browse',this)" id="tab-browse">Browse</button>
-        <button class="tab" onclick="switchTab('selected',this)" id="tab-selected">Selected <span id="sel-badge"></span></button>
+
+      <div class="field-group">
+        <label for="timeFormatSelect">Time Format</label>
+        <select id="timeFormatSelect" name="timeFormat">
+          <option value="12">12-hour (3:45 PM)</option>
+          <option value="24">24-hour (15:45)</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label for="mapStyleSelect">Map Layer Style</label>
+        <select id="mapStyleSelect" name="mapStyle">
+          <option value="osm">OpenStreetMap (default)</option>
+          <option value="topo">OpenTopoMap</option>
+          <option value="dark">CartoDB Dark</option>
+          <option value="light">CartoDB Light</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <label for="refreshIntervalSelect">Weather Refresh Interval</label>
+        <select id="refreshIntervalSelect" name="refreshInterval">
+          <option value="300000">Every 5 minutes</option>
+          <option value="600000">Every 10 minutes</option>
+          <option value="900000">Every 15 minutes</option>
+          <option value="1800000">Every 30 minutes</option>
+        </select>
+      </div>
+
+      <hr style="margin: 15px 0; border: 0; border-top: 1px solid #444;">
+
+      <!-- Data Backup & Restore -->
+      <div class="field-group">
+        <label>Backup &amp; Restore Settings</label>
+        <div style="display: flex; gap: 10px; margin-top: 5px;">
+          <button type="button" class="btn-secondary" onclick="exportConfiguration()">Export (JSON)</button>
+          <label for="importJsonInput" class="btn-secondary" style="cursor: pointer;">Import (JSON)</label>
+          <input type="file" id="importJsonInput" accept=".json" onchange="importConfiguration(event)" style="display:none;">
+        </div>
+      </div>
+
+      <div class="modal-actions" style="margin-top: 20px; text-align: right;">
+        <button type="button" class="btn-secondary" onclick="document.getElementById('preferencesModal').close()">Close</button>
       </div>
     </div>
+  </dialog>
 
-    <div id="panel-browse" class="panel">
-      <ul id="city-list"></ul>
-    </div>
+  <!-- Notice Banner -->
+  <aside aria-label="Privacy Notice">
+    <p><strong>This site uses local storage</strong> to remember your selected cities and preferences across visits. No data is sent to any server.</p>
+  </aside>
 
-    <div id="panel-selected" class="panel hidden">
-      <div id="selected-list"></div>
-    </div>
+  <!-- Application Logic -->
+  <script>
+    let timeOffsetHours = 0;
 
-    <div class="sidebar-footer">
-      <button class="btn-sm" onclick="exportCities()" title="Export selected cities as JSON">↑ Export</button>
-      <button class="btn-sm" onclick="document.getElementById('import-input').click()" title="Import cities from JSON">↓ Import</button>
-      <input type="file" id="import-input" accept=".json" style="display:none" onchange="importCities(event)">
-      <button class="btn-sm danger" onclick="clearAll()">Clear all</button>
-      <button class="btn-sm icon" onclick="openPrefs()" title="Preferences">⚙</button>
-    </div>
-  </div>
+    // Toggle Drawer Panel state
+    function togglePanel() {
+      const panel = document.getElementById('citiesDrawerPanel');
+      const btn = document.getElementById('panelToggleBtn');
+      
+      const isHidden = panel.hasAttribute('hidden');
+      if (isHidden) {
+        panel.removeAttribute('hidden');
+        btn.setAttribute('aria-expanded', 'true');
+      } else {
+        panel.setAttribute('hidden', '');
+        btn.setAttribute('aria-expanded', 'false');
+      }
+    }
 
-  <!-- Map -->
-  <div id="map-wrap">
-    <button id="toggle-sidebar" onclick="toggleSidebar()" title="Toggle sidebar">☰</button>
-    <div id="map"></div>
-    <div id="clock-panel"></div>
-    <div id="status-bar">
-      <div id="status-dot"></div>
-      <span id="status-text">Ready</span>
-    </div>
-  </div>
-</div>
+    // Modal Controller
+    function openPreferences() {
+      const modal = document.getElementById('preferencesModal');
+      if (typeof modal.showModal === 'function') {
+        modal.showModal();
+      } else {
+        alert('Modal dialog is not supported by your browser.');
+      }
+    }
 
-<!-- Preferences Modal -->
-<div class="modal-overlay" id="prefs-overlay">
-  <div class="modal">
-    <h2>Preferences</h2>
-
-    <div class="pref-group">
-      <label>Temperature unit</label>
-      <select id="p-temp">
-        <option value="celsius">Celsius (°C)</option>
-        <option value="fahrenheit">Fahrenheit (°F)</option>
-      </select>
-    </div>
-
-    <div class="pref-group">
-      <label>Time format</label>
-      <select id="p-timefmt">
-        <option value="12">12-hour (3:45 PM)</option>
-        <option value="24">24-hour (15:45)</option>
-      </select>
-    </div>
-
-    <div class="pref-group">
-      <label>Map style</label>
-      <select id="p-mapstyle">
-        <option value="osm">OpenStreetMap (default)</option>
-        <option value="topo">OpenTopoMap</option>
-        <option value="dark">CartoDB Dark</option>
-        <option value="light">CartoDB Light</option>
-      </select>
-    </div>
-
-    <div class="pref-group">
-      <label>Weather auto-refresh</label>
-      <select id="p-refresh">
-        <option value="300000">Every 5 minutes</option>
-        <option value="600000">Every 10 minutes</option>
-        <option value="900000">Every 15 minutes</option>
-        <option value="1800000">Every 30 minutes</option>
-      </select>
-    </div>
-
-    <label class="check-row"><input type="checkbox" id="p-daynight"><span>Day/night overlay</span></label>
-    <label class="check-row"><input type="checkbox" id="p-icons"><span>Weather icons on map labels</span></label>
-    <label class="check-row"><input type="checkbox" id="p-clock"><span>Clock panel on map</span></label>
-    <label class="check-row"><input type="checkbox" id="p-autofit"><span>Auto-fit map when adding cities</span></label>
-    <label class="check-row"><input type="checkbox" id="p-dark" onchange="syncMapStyleSelect()"><span>Dark mode</span></label>
-
-    <div class="modal-footer">
-      <button class="btn-secondary" onclick="closePrefs()">Cancel</button>
-      <button class="btn-primary" onclick="savePrefs()">Save</button>
-    </div>
-  </div>
-</div>
-
-<!-- Cookie consent banner -->
-<div id="consent-banner">
-  <p><strong>This site uses local storage</strong> to remember your selected cities and preferences across visits. No data is sent to any server.</p>
-  <div class="consent-btns">
-    <button class="btn-secondary" onclick="declineConsent()">Decline</button>
-    <button class="btn-primary" onclick="acceptConsent()">Accept &amp; remember my settings</button>
-  </div>
-</div>
-
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-/* ── Inline terminator (no external dep, always available) ── */
-(function () {
-  const D2R = Math.PI / 180;
-  const R2D = 180 / Math.PI;
-
-  // Julian date from JS timestamp (ms since Unix epoch)
-  function julianDate(ms) {
-    return ms / 86400000 + 2440587.5;
-  }
-
-  // Greenwich Mean Sidereal Time in degrees (0–360)
-  function gmstDeg(jd) {
-    const T = (jd - 2451545.0) / 36525;
-    let gmst = 280.46061837
-      + 360.98564736629 * (jd - 2451545)
-      + 0.000387933 * T * T
-      - (T * T * T) / 38710000;
-    return ((gmst % 360) + 360) % 360;
-  }
-
-  // Sun's geocentric ecliptic longitude → equatorial coords
-  // Returns { ra (deg, 0-360), dec (deg) }
-  function sunPosition(jd) {
-    const n = jd - 2451545.0;
-    // Mean longitude & mean anomaly (degrees)
-    const L = ((280.460 + 0.9856474 * n) % 360 + 360) % 360;
-    const g = ((357.528 + 0.9856003 * n) % 360 + 360) % 360;
-    const gR = g * D2R;
-    // Ecliptic longitude
-    const lambda = L + 1.915 * Math.sin(gR) + 0.020 * Math.sin(2 * gR);
-    const lambdaR = lambda * D2R;
-    // Obliquity of ecliptic
-    const eps = (23.439 - 0.0000004 * n) * D2R;
-    // Right ascension & declination
-    const ra  = (Math.atan2(Math.cos(eps) * Math.sin(lambdaR), Math.cos(lambdaR)) * R2D + 360) % 360;
-    const dec = Math.asin(Math.sin(eps) * Math.sin(lambdaR)) * R2D;
-    return { ra, dec };
-  }
-
-  // For a given geographic longitude (deg) and the sun's
-  // sub-solar longitude (GHA, deg) and declination (dec, deg),
-  // compute the latitude of the terminator.
-  // GHA = GMST - RA  (Greenwich Hour Angle of the Sun)
-  // terminator condition: cos(zenith) = 0  →  sin(lat)·sin(dec) + cos(lat)·cos(dec)·cos(LHA) = 0
-  // → lat = atan( -cos(LHA) / tan(dec) )   where LHA = lng - GHA (subtracting to get local hour angle)
-  function terminatorLat(lngDeg, ghaDeg, decDeg) {
-    // LHA = GHA + east_longitude  (longitude is negative for west, e.g. -86.5 for Destin FL)
-    // This is the standard astronomical formula: LHA = GMST − RA + λ = GHA + λ
-    const lha = (ghaDeg + lngDeg) * D2R;
-    const decR = decDeg * D2R;
-    // Guard against dec == 0 (equinox): atan of ±Infinity → ±90
-    return Math.atan(-Math.cos(lha) / Math.tan(decR)) * R2D;
-  }
-
-  L.Terminator = L.Polygon.extend({
-    options: {
-      color: 'transparent',
-      fillColor: '#000',
-      fillOpacity: 0.32,
-      weight: 0,
-      resolution: 1,   // degrees; 1° gives smooth curve
-    },
-
-    initialize: function (options) {
-      L.setOptions(this, options);
-      this.setTime(new Date());
-    },
-
-    setTime: function (date) {
-      date = date || new Date();
-      const jd   = julianDate(date.getTime());
-      const sun  = sunPosition(jd);
-      const gmst = gmstDeg(jd);
-
-      // Greenwich Hour Angle of the Sun (degrees, 0–360)
-      const gha = ((gmst - sun.ra) % 360 + 360) % 360;
-
-      // Build terminator curve: one lat point per longitude step
-      const step = this.options.resolution;
-      const curve = [];
-      for (let lng = -180; lng <= 180; lng += step) {
-        const lat = terminatorLat(lng, gha, sun.dec);
-        // Skip degenerate points near the poles
-        if (isFinite(lat) && lat >= -90 && lat <= 90) {
-          curve.push([lat, lng]);
-        }
+    // Meeting Planner Time Scrub Logic
+    function updateScrubbedTime(offset) {
+      timeOffsetHours = parseFloat(offset);
+      const label = document.getElementById('scrubOffsetLabel');
+      const slider = document.getElementById('timeScrubber');
+      
+      if (timeOffsetHours === 0) {
+        label.textContent = "Current Time (Live)";
+        slider.setAttribute('aria-valuetext', 'Current Time');
+      } else {
+        const sign = timeOffsetHours > 0 ? '+' : '';
+        const text = `${sign}${timeOffsetHours} hrs relative to now`;
+        label.textContent = text;
+        slider.setAttribute('aria-valuetext', text);
       }
 
-      // Close the polygon on the night side:
-      // If dec > 0  → sun is in northern hemisphere → south pole is in night
-      // If dec < 0  → sun is in southern hemisphere → north pole is in night
-      // If dec == 0 → terminator runs exactly along a meridian (equinox edge case)
-      const nightPole = sun.dec >= 0 ? -90 : 90;
-      const ring = [
-        [nightPole, -180],
-        ...curve,
-        [nightPole,  180],
-      ];
-
-      this.setLatLngs([ring]);
-    },
-  });
-
-  L.terminator = function (options) { return new L.Terminator(options); };
-})();
-</script>
-<script>
-/* ══════════════════════════════════════════════════════
-   DATA  –  100 cities, deduplicated, sorted by name
-═══════════════════════════════════════════════════════ */
-const ALL_CITIES = [
-  {name:"Accra",country:"Ghana",region:"Africa",lat:5.6037,lng:-0.187,tz:"Africa/Accra"},
-  {name:"Addis Ababa",country:"Ethiopia",region:"Africa",lat:9.0319,lng:38.7468,tz:"Africa/Addis_Ababa"},
-  {name:"Amsterdam",country:"Netherlands",region:"Europe",lat:52.3676,lng:4.9041,tz:"Europe/Amsterdam"},
-  {name:"Anchorage",country:"United States",region:"North America",lat:61.2181,lng:-149.9003,tz:"America/Anchorage"},
-  {name:"Athens",country:"Greece",region:"Europe",lat:37.9838,lng:23.7275,tz:"Europe/Athens"},
-  {name:"Auckland",country:"New Zealand",region:"Oceania",lat:-36.8485,lng:174.7633,tz:"Pacific/Auckland"},
-  {name:"Baghdad",country:"Iraq",region:"Middle East",lat:33.3152,lng:44.3661,tz:"Asia/Baghdad"},
-  {name:"Bangkok",country:"Thailand",region:"Asia",lat:13.7563,lng:100.5018,tz:"Asia/Bangkok"},
-  {name:"Barcelona",country:"Spain",region:"Europe",lat:41.3851,lng:2.1734,tz:"Europe/Madrid"},
-  {name:"Beijing",country:"China",region:"Asia",lat:39.9042,lng:116.4074,tz:"Asia/Shanghai"},
-  {name:"Berlin",country:"Germany",region:"Europe",lat:52.52,lng:13.405,tz:"Europe/Berlin"},
-  {name:"Bogotá",country:"Colombia",region:"South America",lat:4.711,lng:-74.0721,tz:"America/Bogota"},
-  {name:"Brisbane",country:"Australia",region:"Oceania",lat:-27.4698,lng:153.0251,tz:"Australia/Brisbane"},
-  {name:"Brussels",country:"Belgium",region:"Europe",lat:50.8503,lng:4.3517,tz:"Europe/Brussels"},
-  {name:"Bucharest",country:"Romania",region:"Europe",lat:44.4268,lng:26.1025,tz:"Europe/Bucharest"},
-  {name:"Budapest",country:"Hungary",region:"Europe",lat:47.4979,lng:19.0402,tz:"Europe/Budapest"},
-  {name:"Buenos Aires",country:"Argentina",region:"South America",lat:-34.6037,lng:-58.3816,tz:"America/Argentina/Buenos_Aires"},
-  {name:"Cairo",country:"Egypt",region:"Africa",lat:30.0444,lng:31.2357,tz:"Africa/Cairo"},
-  {name:"Calgary",country:"Canada",region:"North America",lat:51.0447,lng:-114.0719,tz:"America/Edmonton"},
-  {name:"Cape Town",country:"South Africa",region:"Africa",lat:-33.9249,lng:18.4241,tz:"Africa/Johannesburg"},
-  {name:"Caracas",country:"Venezuela",region:"South America",lat:10.4806,lng:-66.9036,tz:"America/Caracas"},
-  {name:"Casablanca",country:"Morocco",region:"Africa",lat:33.5731,lng:-7.5898,tz:"Africa/Casablanca"},
-  {name:"Chicago",country:"United States",region:"North America",lat:41.8781,lng:-87.6298,tz:"America/Chicago"},
-  {name:"Colombo",country:"Sri Lanka",region:"Asia",lat:6.9271,lng:79.8612,tz:"Asia/Colombo"},
-  {name:"Copenhagen",country:"Denmark",region:"Europe",lat:55.6761,lng:12.5683,tz:"Europe/Copenhagen"},
-  {name:"Dakar",country:"Senegal",region:"Africa",lat:14.7167,lng:-17.4677,tz:"Africa/Dakar"},
-  {name:"Dallas",country:"United States",region:"North America",lat:32.7767,lng:-96.797,tz:"America/Chicago"},
-  {name:"Delhi",country:"India",region:"Asia",lat:28.6139,lng:77.209,tz:"Asia/Kolkata"},
-  {name:"Denver",country:"United States",region:"North America",lat:39.7392,lng:-104.9903,tz:"America/Denver"},
-  {name:"Destin",country:"United States",region:"North America",lat:30.3935,lng:-86.4958,tz:"America/Chicago"},
-  {name:"Dhaka",country:"Bangladesh",region:"Asia",lat:23.8103,lng:90.4125,tz:"Asia/Dhaka"},
-  {name:"Dublin",country:"Ireland",region:"Europe",lat:53.3498,lng:-6.2603,tz:"Europe/Dublin"},
-  {name:"Dubai",country:"UAE",region:"Middle East",lat:25.2048,lng:55.2708,tz:"Asia/Dubai"},
-  {name:"Hanoi",country:"Vietnam",region:"Asia",lat:21.0285,lng:105.8542,tz:"Asia/Bangkok"},
-  {name:"Havana",country:"Cuba",region:"North America",lat:23.1136,lng:-82.3666,tz:"America/Havana"},
-  {name:"Helsinki",country:"Finland",region:"Europe",lat:60.1699,lng:24.9384,tz:"Europe/Helsinki"},
-  {name:"Ho Chi Minh City",country:"Vietnam",region:"Asia",lat:10.8231,lng:106.6297,tz:"Asia/Ho_Chi_Minh"},
-  {name:"Hong Kong",country:"China",region:"Asia",lat:22.3193,lng:114.1694,tz:"Asia/Hong_Kong"},
-  {name:"Honolulu",country:"United States",region:"Oceania",lat:21.3069,lng:-157.8583,tz:"Pacific/Honolulu"},
-  {name:"Houston",country:"United States",region:"North America",lat:29.7604,lng:-95.3698,tz:"America/Chicago"},
-  {name:"Istanbul",country:"Turkey",region:"Europe",lat:41.0082,lng:28.9784,tz:"Europe/Istanbul"},
-  {name:"Jakarta",country:"Indonesia",region:"Asia",lat:-6.2088,lng:106.8456,tz:"Asia/Jakarta"},
-  {name:"Johannesburg",country:"South Africa",region:"Africa",lat:-26.2041,lng:28.0473,tz:"Africa/Johannesburg"},
-  {name:"Karachi",country:"Pakistan",region:"Asia",lat:24.8607,lng:67.0011,tz:"Asia/Karachi"},
-  {name:"Kathmandu",country:"Nepal",region:"Asia",lat:27.7172,lng:85.324,tz:"Asia/Kathmandu"},
-  {name:"Kiev",country:"Ukraine",region:"Europe",lat:50.4501,lng:30.5234,tz:"Europe/Kiev"},
-  {name:"Kuala Lumpur",country:"Malaysia",region:"Asia",lat:3.139,lng:101.6869,tz:"Asia/Kuala_Lumpur"},
-  {name:"Lagos",country:"Nigeria",region:"Africa",lat:6.5244,lng:3.3792,tz:"Africa/Lagos"},
-  {name:"Lahore",country:"Pakistan",region:"Asia",lat:31.5497,lng:74.3436,tz:"Asia/Karachi"},
-  {name:"Lima",country:"Peru",region:"South America",lat:-12.0464,lng:-77.0428,tz:"America/Lima"},
-  {name:"Lisbon",country:"Portugal",region:"Europe",lat:38.7223,lng:-9.1393,tz:"Europe/Lisbon"},
-  {name:"London",country:"United Kingdom",region:"Europe",lat:51.5074,lng:-0.1278,tz:"Europe/London"},
-  {name:"Los Angeles",country:"United States",region:"North America",lat:34.0522,lng:-118.2437,tz:"America/Los_Angeles"},
-  {name:"Luanda",country:"Angola",region:"Africa",lat:-8.8368,lng:13.2343,tz:"Africa/Luanda"},
-  {name:"Madrid",country:"Spain",region:"Europe",lat:40.4168,lng:-3.7038,tz:"Europe/Madrid"},
-  {name:"Manila",country:"Philippines",region:"Asia",lat:14.5995,lng:120.9842,tz:"Asia/Manila"},
-  {name:"Melbourne",country:"Australia",region:"Oceania",lat:-37.8136,lng:144.9631,tz:"Australia/Melbourne"},
-  {name:"Mexico City",country:"Mexico",region:"North America",lat:19.4326,lng:-99.1332,tz:"America/Mexico_City"},
-  {name:"Miami",country:"United States",region:"North America",lat:25.7617,lng:-80.1918,tz:"America/New_York"},
-  {name:"Milan",country:"Italy",region:"Europe",lat:45.4642,lng:9.19,tz:"Europe/Rome"},
-  {name:"Minsk",country:"Belarus",region:"Europe",lat:53.9045,lng:27.5615,tz:"Europe/Minsk"},
-  {name:"Montreal",country:"Canada",region:"North America",lat:45.5017,lng:-73.5673,tz:"America/Toronto"},
-  {name:"Moscow",country:"Russia",region:"Europe",lat:55.7558,lng:37.6173,tz:"Europe/Moscow"},
-  {name:"Mumbai",country:"India",region:"Asia",lat:19.076,lng:72.8777,tz:"Asia/Kolkata"},
-  {name:"Nairobi",country:"Kenya",region:"Africa",lat:-1.2921,lng:36.8219,tz:"Africa/Nairobi"},
-  {name:"New York",country:"United States",region:"North America",lat:40.7128,lng:-74.006,tz:"America/New_York"},
-  {name:"Oslo",country:"Norway",region:"Europe",lat:59.9139,lng:10.7522,tz:"Europe/Oslo"},
-  {name:"Paris",country:"France",region:"Europe",lat:48.8566,lng:2.3522,tz:"Europe/Paris"},
-  {name:"Perth",country:"Australia",region:"Oceania",lat:-31.9505,lng:115.8605,tz:"Australia/Perth"},
-  {name:"Phoenix",country:"United States",region:"North America",lat:33.4484,lng:-112.074,tz:"America/Phoenix"},
-  {name:"Prague",country:"Czech Republic",region:"Europe",lat:50.0755,lng:14.4378,tz:"Europe/Prague"},
-  {name:"Reykjavik",country:"Iceland",region:"Europe",lat:64.1355,lng:-21.8954,tz:"Atlantic/Reykjavik"},
-  {name:"Rio de Janeiro",country:"Brazil",region:"South America",lat:-22.9068,lng:-43.1729,tz:"America/Sao_Paulo"},
-  {name:"Riyadh",country:"Saudi Arabia",region:"Middle East",lat:24.7136,lng:46.6753,tz:"Asia/Riyadh"},
-  {name:"Rome",country:"Italy",region:"Europe",lat:41.9028,lng:12.4964,tz:"Europe/Rome"},
-  {name:"San Francisco",country:"United States",region:"North America",lat:37.7749,lng:-122.4194,tz:"America/Los_Angeles"},
-  {name:"Santiago",country:"Chile",region:"South America",lat:-33.4489,lng:-70.6693,tz:"America/Santiago"},
-  {name:"São Paulo",country:"Brazil",region:"South America",lat:-23.5505,lng:-46.6333,tz:"America/Sao_Paulo"},
-  {name:"Seattle",country:"United States",region:"North America",lat:47.6062,lng:-122.3321,tz:"America/Los_Angeles"},
-  {name:"Seoul",country:"South Korea",region:"Asia",lat:37.5665,lng:126.978,tz:"Asia/Seoul"},
-  {name:"Shanghai",country:"China",region:"Asia",lat:31.2304,lng:121.4737,tz:"Asia/Shanghai"},
-  {name:"Singapore",country:"Singapore",region:"Asia",lat:1.3521,lng:103.8198,tz:"Asia/Singapore"},
-  {name:"Sofia",country:"Bulgaria",region:"Europe",lat:42.6977,lng:23.3219,tz:"Europe/Sofia"},
-  {name:"Stockholm",country:"Sweden",region:"Europe",lat:59.3293,lng:18.0686,tz:"Europe/Stockholm"},
-  {name:"Sydney",country:"Australia",region:"Oceania",lat:-33.8688,lng:151.2093,tz:"Australia/Sydney"},
-  {name:"Taipei",country:"Taiwan",region:"Asia",lat:25.0329,lng:121.5654,tz:"Asia/Taipei"},
-  {name:"Tashkent",country:"Uzbekistan",region:"Asia",lat:41.2995,lng:69.2401,tz:"Asia/Tashkent"},
-  {name:"Tehran",country:"Iran",region:"Middle East",lat:35.6892,lng:51.389,tz:"Asia/Tehran"},
-  {name:"Tel Aviv",country:"Israel",region:"Middle East",lat:32.0853,lng:34.7818,tz:"Asia/Jerusalem"},
-  {name:"Tokyo",country:"Japan",region:"Asia",lat:35.6895,lng:139.6917,tz:"Asia/Tokyo"},
-  {name:"Toronto",country:"Canada",region:"North America",lat:43.6511,lng:-79.3832,tz:"America/Toronto"},
-  {name:"Tunis",country:"Tunisia",region:"Africa",lat:36.8065,lng:10.1815,tz:"Africa/Tunis"},
-  {name:"Vancouver",country:"Canada",region:"North America",lat:49.2827,lng:-123.1207,tz:"America/Vancouver"},
-  {name:"Vienna",country:"Austria",region:"Europe",lat:48.2082,lng:16.3738,tz:"Europe/Vienna"},
-  {name:"Warsaw",country:"Poland",region:"Europe",lat:52.2297,lng:21.0122,tz:"Europe/Warsaw"},
-  {name:"Washington DC",country:"United States",region:"North America",lat:38.9072,lng:-77.0369,tz:"America/New_York"},
-  {name:"Yangon",country:"Myanmar",region:"Asia",lat:16.8661,lng:96.1951,tz:"Asia/Rangoon"},
-  {name:"Zurich",country:"Switzerland",region:"Europe",lat:47.3769,lng:8.5417,tz:"Europe/Zurich"},
-];
-
-/* ══════════════════════════════════════════════════════
-   STATE
-═══════════════════════════════════════════════════════ */
-let map, tileLayer, terminator;
-let selectedCities = [];       // enriched city objects
-let cityLayers = {};           // name → { marker, tooltip }
-let weatherRefreshTimer = null;
-let clockTimer = null;
-let sidebarOpen = true;
-
-const CITIES_KEY = "wtw_cities_v1";
-function storageAllowed() { return localStorage.getItem("wtw_consent") === "1"; }
-
-const DEFAULT_PREFS = {
-  tempUnit: "celsius",
-  timeFormat: "12",
-  mapStyle: "osm",
-  refreshInterval: 600000,
-  showDayNight: true,
-  showIcons: true,
-  showClock: true,
-  autoFit: true,
-  darkMode: false,
-};
-
-let prefs = { ...DEFAULT_PREFS };
-
-/* ══════════════════════════════════════════════════════
-   WEATHER CODE MAP  (WMO weather interpretation codes)
-═══════════════════════════════════════════════════════ */
-const WMO = {
-  0:  { icon:"☀️", label:"Clear sky" },
-  1:  { icon:"🌤️", label:"Mainly clear" },
-  2:  { icon:"⛅", label:"Partly cloudy" },
-  3:  { icon:"☁️", label:"Overcast" },
-  45: { icon:"🌫️", label:"Fog" },
-  48: { icon:"🌫️", label:"Icy fog" },
-  51: { icon:"🌦️", label:"Light drizzle" },
-  53: { icon:"🌧️", label:"Drizzle" },
-  55: { icon:"🌧️", label:"Heavy drizzle" },
-  61: { icon:"🌦️", label:"Light rain" },
-  63: { icon:"🌧️", label:"Rain" },
-  65: { icon:"🌧️", label:"Heavy rain" },
-  66: { icon:"🌨️", label:"Freezing rain" },
-  67: { icon:"🌨️", label:"Heavy freezing rain" },
-  71: { icon:"❄️", label:"Light snow" },
-  73: { icon:"❄️", label:"Snow" },
-  75: { icon:"❄️", label:"Heavy snow" },
-  77: { icon:"🌨️", label:"Snow grains" },
-  80: { icon:"🌧️", label:"Showers" },
-  81: { icon:"🌧️", label:"Heavy showers" },
-  82: { icon:"🌧️", label:"Violent showers" },
-  85: { icon:"🌨️", label:"Snow showers" },
-  86: { icon:"❄️", label:"Heavy snow showers" },
-  95: { icon:"⛈️", label:"Thunderstorm" },
-  96: { icon:"⛈️", label:"Thunderstorm+hail" },
-  99: { icon:"⛈️", label:"Heavy thunderstorm" },
-};
-
-function wmo(code) {
-  return WMO[code] || { icon:"🌡️", label:"Unknown" };
-}
-
-/* ══════════════════════════════════════════════════════
-   PREFERENCES
-═══════════════════════════════════════════════════════ */
-function loadPrefs() {
-  try {
-    const s = localStorage.getItem("wtw_prefs_v2");
-    if (s) prefs = { ...DEFAULT_PREFS, ...JSON.parse(s) };
-  } catch (_) {}
-  applyTheme();
-}
-
-function applyTheme() {
-  document.body.classList.toggle("dark", !!prefs.darkMode);
-}
-
-function syncMapStyleSelect() {
-  const dark = document.getElementById("p-dark").checked;
-  const sel  = document.getElementById("p-mapstyle");
-  if (dark) {
-    sel.value    = "dark";
-    sel.disabled = true;
-    sel.style.opacity = "0.45";
-    sel.style.cursor  = "not-allowed";
-  } else {
-    if (sel.value === "dark" && prefs.darkMode) sel.value = "osm";
-    sel.disabled = false;
-    sel.style.opacity = "";
-    sel.style.cursor  = "";
-  }
-}
-
-function openPrefs() {
-  document.getElementById("p-temp").value     = prefs.tempUnit;
-  document.getElementById("p-timefmt").value  = prefs.timeFormat;
-  document.getElementById("p-mapstyle").value = prefs.darkMode ? "dark" : prefs.mapStyle;
-  document.getElementById("p-refresh").value  = prefs.refreshInterval;
-  document.getElementById("p-daynight").checked = prefs.showDayNight;
-  document.getElementById("p-icons").checked    = prefs.showIcons;
-  document.getElementById("p-clock").checked    = prefs.showClock;
-  document.getElementById("p-autofit").checked  = prefs.autoFit;
-  document.getElementById("p-dark").checked     = prefs.darkMode;
-  syncMapStyleSelect();
-  document.getElementById("prefs-overlay").classList.add("open");
-}
-
-function closePrefs() {
-  document.getElementById("prefs-overlay").classList.remove("open");
-}
-
-function savePrefs() {
-  const oldMapStyle = prefs.mapStyle;
-  const darkMode    = document.getElementById("p-dark").checked;
-
-  prefs.tempUnit      = document.getElementById("p-temp").value;
-  prefs.timeFormat    = document.getElementById("p-timefmt").value;
-  prefs.refreshInterval = parseInt(document.getElementById("p-refresh").value);
-  prefs.showDayNight  = document.getElementById("p-daynight").checked;
-  prefs.showIcons     = document.getElementById("p-icons").checked;
-  prefs.showClock     = document.getElementById("p-clock").checked;
-  prefs.autoFit       = document.getElementById("p-autofit").checked;
-  prefs.darkMode      = darkMode;
-
-  // When dark mode is on, lock map to CartoDB Dark.
-  // When turning dark mode off, fall back to the last manually chosen style (or OSM).
-  if (darkMode) {
-    prefs.mapStyle = "dark";
-  } else {
-    const chosen = document.getElementById("p-mapstyle").value;
-    prefs.mapStyle = chosen === "dark" ? "osm" : chosen;
-  }
-
-  if (storageAllowed()) localStorage.setItem("wtw_prefs_v2", JSON.stringify(prefs));
-  applyTheme();
-  closePrefs();
-
-  if (prefs.mapStyle !== oldMapStyle) applyMapStyle();
-  updateTerminator();
-  refreshAllMapLabels();
-  renderSelectedList();
-  renderClockPanel();
-  startWeatherRefresh();
-}
-
-/* ══════════════════════════════════════════════════════
-   MAP SETUP
-═══════════════════════════════════════════════════════ */
-const TILE_URLS = {
-  osm:   ["https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", "© OpenStreetMap contributors"],
-  topo:  ["https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png", "© OpenTopoMap"],
-  dark:  ["https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", "© CartoDB"],
-  light: ["https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", "© CartoDB"],
-};
-
-function initMap() {
-  map = L.map("map", {
-    zoomControl: false,
-    // Lock to a single map copy — no horizontal world-wrapping
-    worldCopyJump: false,
-    // Clamp panning so the map never shows gray beyond the world edges
-    maxBounds: [[-90, -210], [90, 210]],
-    maxBoundsViscosity: 1.0,
-    // Prevent zooming out past a full-world view
-    minZoom: 2,
-  }).setView([20, 10], 2);
-
-  L.control.zoom({ position: "bottomleft" }).addTo(map);
-
-  const [url, attr] = TILE_URLS[prefs.mapStyle] || TILE_URLS.osm;
-  tileLayer = L.tileLayer(url, { attribution: attr, maxZoom: 18 }).addTo(map);
-
-  terminator = L.terminator({ fillOpacity: 0.28, fillColor: "#000" });
-  if (prefs.showDayNight) terminator.addTo(map);
-
-  // Tapping the map closes the drawer on mobile
-  map.on("click", () => {
-    map.closePopup();
-    if (!isDesktop() && drawerOpen) closeDrawer();
-  });
-}
-
-function applyMapStyle() {
-  if (tileLayer) map.removeLayer(tileLayer);
-  const [url, attr] = TILE_URLS[prefs.mapStyle] || TILE_URLS.osm;
-  tileLayer = L.tileLayer(url, { attribution: attr, maxZoom: 18 }).addTo(map);
-  // Keep terminator on top
-  if (prefs.showDayNight && map.hasLayer(terminator)) {
-    terminator.remove(); terminator.addTo(map);
-  }
-}
-
-function updateTerminator() {
-  if (!terminator) return;
-  if (prefs.showDayNight) {
-    terminator.setTime(new Date());
-    if (!map.hasLayer(terminator)) terminator.addTo(map);
-  } else {
-    if (map.hasLayer(terminator)) map.removeLayer(terminator);
-  }
-}
-
-/* ══════════════════════════════════════════════════════
-   TIME HELPERS
-═══════════════════════════════════════════════════════ */
-function localTime(tz) {
-  try {
-    const opts = { timeZone: tz, hour: "numeric", minute: "2-digit" };
-    if (prefs.timeFormat === "24") opts.hour12 = false;
-    return new Intl.DateTimeFormat("en-US", opts).format(new Date());
-  } catch (_) { return "—"; }
-}
-
-function localDate(tz) {
-  try {
-    return new Intl.DateTimeFormat("en-US", {
-      timeZone: tz, weekday: "short", month: "short", day: "numeric"
-    }).format(new Date());
-  } catch (_) { return ""; }
-}
-
-function utcOffset(tz) {
-  try {
-    const s = new Intl.DateTimeFormat("en", {
-      timeZone: tz, timeZoneName: "shortOffset"
-    }).formatToParts(new Date()).find(p => p.type === "timeZoneName");
-    return s ? s.value : "";
-  } catch (_) { return ""; }
-}
-
-/* ══════════════════════════════════════════════════════
-   WEATHER API  (Open-Meteo, free, no key needed)
-═══════════════════════════════════════════════════════ */
-function setStatus(state, text) {
-  document.getElementById("status-dot").className = state === "loading" ? "loading" :
-    state === "error" ? "error" : "";
-  document.getElementById("status-text").textContent = text;
-}
-
-async function fetchWeather(lat, lng) {
-  const unit = prefs.tempUnit === "fahrenheit" ? "fahrenheit" : "celsius";
-  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}` +
-    `&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m,apparent_temperature` +
-    `&temperature_unit=${unit}&timezone=auto&wind_speed_unit=kmh`;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const data = await res.json();
-    const c = data.current;
-    const w = wmo(c.weather_code);
-    return {
-      temperature: Math.round(c.temperature_2m),
-      feelsLike:   Math.round(c.apparent_temperature),
-      icon:        w.icon,
-      condition:   w.label,
-      wind:        Math.round(c.wind_speed_10m),
-      humidity:    c.relative_humidity_2m,
-      code:        c.weather_code,
-      unit:        prefs.tempUnit,
-    };
-  } catch (e) {
-    return { temperature: null, feelsLike: null, icon: "❓", condition: "Unavailable", wind: null, humidity: null };
-  }
-}
-
-/* ══════════════════════════════════════════════════════
-   MAP MARKERS & TOOLTIPS
-═══════════════════════════════════════════════════════ */
-function buildTooltipHTML(city) {
-  const time = localTime(city.tz);
-  const temp = city.weather && city.weather.temperature !== null
-    ? `${city.weather.temperature}°${prefs.tempUnit === "fahrenheit" ? "F" : "C"}` : "";
-  const icon = prefs.showIcons && city.weather ? city.weather.icon : "";
-  return `<div class="city-tooltip">
-    <div class="city-tooltip-name">${city.name}</div>
-    <div class="city-tooltip-line">${icon ? icon + " " : ""}${time}${temp ? " · " + temp : ""}</div>
-  </div>`;
-}
-
-function refreshAllMapLabels() {
-  selectedCities.forEach(city => {
-    const layer = cityLayers[city.name];
-    if (layer) layer.tooltip.setContent(buildTooltipHTML(city));
-  });
-}
-
-async function addCity(city) {
-  if (selectedCities.find(c => c.name === city.name)) return;
-
-  const enriched = { ...city, weather: null };
-  selectedCities.push(enriched);
-
-  // Marker
-  const marker = L.circleMarker([city.lat, city.lng], {
-    radius: 8, fillColor: "#2563eb", color: "#fff",
-    weight: 2.5, opacity: 1, fillOpacity: 0.9,
-  }).addTo(map);
-
-  // Tooltip (permanent label)
-  const tooltip = L.tooltip({
-    permanent: true, direction: "right", offset: [12, 0],
-    className: "city-tooltip-wrapper", interactive: false,
-  }).setLatLng([city.lat, city.lng]).addTo(map);
-
-  cityLayers[city.name] = { marker, tooltip };
-  tooltip.setContent(buildTooltipHTML(enriched));
-
-  // Click marker → jump to Selected tab and scroll to card
-  marker.on("click", () => {
-    switchTab("selected", document.getElementById("tab-selected"));
-    setTimeout(() => {
-      const el = document.getElementById(`card-${slugify(city.name)}`);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }, 50);
-  });
-
-  renderBrowseList();
-  renderSelectedList();
-  renderClockPanel();
-  if (prefs.autoFit) fitMap();
-
-  // Fetch weather asynchronously
-  setStatus("loading", `Fetching weather…`);
-  const weather = await fetchWeather(city.lat, city.lng);
-  enriched.weather = weather;
-  tooltip.setContent(buildTooltipHTML(enriched));
-  renderSelectedList();
-  renderClockPanel();
-  saveCities();
-  setStatus("ok", `Updated ${new Date().toLocaleTimeString()}`);
-}
-
-function removeCity(name) {
-  const idx = selectedCities.findIndex(c => c.name === name);
-  if (idx === -1) return;
-  selectedCities.splice(idx, 1);
-  if (cityLayers[name]) {
-    map.removeLayer(cityLayers[name].marker);
-    map.removeLayer(cityLayers[name].tooltip);
-    delete cityLayers[name];
-  }
-  renderBrowseList();
-  renderSelectedList();
-  renderClockPanel();
-  updateSelBadge();
-  saveCities();
-}
-
-function clearAll() {
-  if (!selectedCities.length) return;
-  if (!confirm(`Remove all ${selectedCities.length} selected cities?`)) return;
-  [...selectedCities].forEach(c => removeCity(c.name));
-}
-
-function fitMap() {
-  if (!selectedCities.length) return;
-  const bounds = L.latLngBounds(selectedCities.map(c => [c.lat, c.lng]));
-  map.fitBounds(bounds, { padding: [60, 60], maxZoom: 8 });
-}
-
-/* ══════════════════════════════════════════════════════
-   RENDER  –  Browse list
-═══════════════════════════════════════════════════════ */
-function renderBrowseList() {
-  const term = document.getElementById("search").value.toLowerCase().trim();
-  const sort = document.getElementById("sort-select").value;
-
-  let list = ALL_CITIES.filter(c =>
-    !term ||
-    c.name.toLowerCase().includes(term) ||
-    c.country.toLowerCase().includes(term) ||
-    c.region.toLowerCase().includes(term)
-  );
-
-  if (sort === "region") {
-    list = list.sort((a, b) => a.region.localeCompare(b.region) || a.name.localeCompare(b.name));
-  }
-
-  const ul = document.getElementById("city-list");
-  ul.innerHTML = "";
-
-  // Group headers for region sort
-  let lastRegion = null;
-
-  list.forEach(city => {
-    if (sort === "region" && city.region !== lastRegion) {
-      lastRegion = city.region;
-      const li = document.createElement("li");
-      li.style.cssText = "font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--text3);padding:10px 8px 4px;cursor:default;border:none;";
-      li.textContent = city.region;
-      li.classList.add("is-added"); // prevent hover
-      ul.appendChild(li);
+      renderAllCityClocks();
     }
 
-    const added = !!selectedCities.find(c => c.name === city.name);
-    const li = document.createElement("li");
-    li.className = added ? "is-added" : "";
-
-    const tzShort = city.tz.split("/").pop().replace(/_/g, " ");
-    li.innerHTML = `
-      <div>
-        <div>${city.name}</div>
-        <div class="city-sub">${city.country}</div>
-      </div>
-      <span class="tz-chip">${tzShort}</span>
-    `;
-    if (!added) li.addEventListener("click", () => addCity(city));
-    ul.appendChild(li);
-  });
-
-  if (!list.length) {
-    ul.innerHTML = `<div class="empty">No cities match "<strong>${term}</strong>"</div>`;
-  }
-}
-
-/* ══════════════════════════════════════════════════════
-   RENDER  –  Selected list
-═══════════════════════════════════════════════════════ */
-function renderSelectedList() {
-  const container = document.getElementById("selected-list");
-  updateSelBadge();
-
-  if (!selectedCities.length) {
-    container.innerHTML = `<div class="empty">No cities selected yet.<br>Search or browse to add some.</div>`;
-    return;
-  }
-
-  container.innerHTML = "";
-  selectedCities.forEach(city => {
-    const div = document.createElement("div");
-    div.className = "city-card";
-    div.id = `card-${slugify(city.name)}`;
-
-    const hasWeather = city.weather && city.weather.temperature !== null;
-    const tempUnit = prefs.tempUnit === "fahrenheit" ? "°F" : "°C";
-    const temp     = hasWeather ? `${city.weather.temperature}${tempUnit}` : "—";
-    const feels    = hasWeather && city.weather.feelsLike !== null ? `Feels like ${city.weather.feelsLike}${tempUnit}` : "";
-    const cond     = city.weather ? city.weather.condition : "Loading…";
-    const icon     = city.weather ? city.weather.icon : "";
-    const wind     = hasWeather && city.weather.wind !== null ? `💨 ${city.weather.wind} km/h` : "";
-    const hum      = hasWeather && city.weather.humidity != null ? `💧 ${city.weather.humidity}%` : "";
-    const offset   = utcOffset(city.tz);
-    const spinner  = !city.weather ? `<span class="spinner"></span>` : "";
-
-    div.innerHTML = `
-      <div class="city-card-header">
-        <div>
-          <div class="city-card-name">${city.name}</div>
-          <div class="city-card-country">${city.country} · ${offset}</div>
-        </div>
-        <button class="btn-remove" onclick="removeCity('${escQ(city.name)}')">Remove</button>
-      </div>
-      <div class="city-card-time" id="time-${slugify(city.name)}">${localTime(city.tz)}</div>
-      <div class="city-card-date">${localDate(city.tz)}</div>
-      <div class="city-card-weather">
-        ${icon ? `<span class="wicon">${icon}</span>` : spinner}
-        ${hasWeather ? `<span class="wtemp">${temp}</span>` : ""}
-        <span>${cond}</span>
-        ${feels ? `<span>${feels}</span>` : ""}
-        ${wind  ? `<span>${wind}</span>` : ""}
-        ${hum   ? `<span>${hum}</span>` : ""}
-      </div>
-    `;
-    container.appendChild(div);
-  });
-}
-
-/* ══════════════════════════════════════════════════════
-   RENDER  –  Clock panel on map
-═══════════════════════════════════════════════════════ */
-function renderClockPanel() {
-  const panel = document.getElementById("clock-panel");
-  if (!prefs.showClock || !selectedCities.length) { panel.innerHTML = ""; return; }
-
-  // Show max 5 clocks to avoid clutter
-  const list = selectedCities.slice(0, 5);
-  panel.innerHTML = list.map(city => `
-    <div class="clock-mini">
-      <div class="clock-mini-city">${city.name}</div>
-      <div class="clock-mini-time" id="clk-${slugify(city.name)}">${localTime(city.tz)}</div>
-      <div class="clock-mini-meta">${city.weather && city.weather.icon ? city.weather.icon + " " : ""}${city.weather && city.weather.temperature !== null ? city.weather.temperature + (prefs.tempUnit === "fahrenheit" ? "°F" : "°C") : ""}</div>
-    </div>
-  `).join("");
-}
-
-/* ══════════════════════════════════════════════════════
-   LIVE CLOCK  – ticks every second
-═══════════════════════════════════════════════════════ */
-function tickClocks() {
-  selectedCities.forEach(city => {
-    const slug = slugify(city.name);
-    const el = document.getElementById("time-" + slug);
-    if (el) el.textContent = localTime(city.tz);
-    const cl = document.getElementById("clk-" + slug);
-    if (cl) cl.textContent = localTime(city.tz);
-    if (cityLayers[city.name]) {
-      cityLayers[city.name].tooltip.setContent(buildTooltipHTML(city));
+    function resetTimeScrub() {
+      const slider = document.getElementById('timeScrubber');
+      slider.value = 0;
+      updateScrubbedTime(0);
     }
-  });
-}
 
-/* ══════════════════════════════════════════════════════
-   WEATHER REFRESH
-═══════════════════════════════════════════════════════ */
-function startWeatherRefresh() {
-  if (weatherRefreshTimer) clearInterval(weatherRefreshTimer);
-  weatherRefreshTimer = setInterval(async () => {
-    if (!selectedCities.length) return;
-    setStatus("loading", "Refreshing weather…");
-    for (const city of selectedCities) {
-      city.weather = await fetchWeather(city.lat, city.lng);
-      cityLayers[city.name]?.tooltip.setContent(buildTooltipHTML(city));
+    function getEffectiveTime() {
+      const now = new Date();
+      if (timeOffsetHours !== 0) {
+        now.setTime(now.getTime() + (timeOffsetHours * 60 * 60 * 1000));
+      }
+      return now;
     }
-    renderSelectedList();
-    renderClockPanel();
-    setStatus("ok", `Updated ${new Date().toLocaleTimeString()}`);
-  }, prefs.refreshInterval);
-}
 
-/* ══════════════════════════════════════════════════════
-   EXPORT / IMPORT
-═══════════════════════════════════════════════════════ */
-function exportCities() {
-  const data = selectedCities.map(({ name, country, region, lat, lng, tz }) =>
-    ({ name, country, region, lat, lng, tz })
-  );
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "cities.json";
-  a.click();
-}
+    function renderAllCityClocks() {
+      // Refresh city clock nodes based on getEffectiveTime()
+    }
 
-function importCities(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => {
-    try {
-      const arr = JSON.parse(ev.target.result);
-      if (!Array.isArray(arr)) throw new Error();
-      arr.forEach(c => {
-        if (c.name && c.lat != null && c.lng != null && c.tz) {
-          // Merge with ALL_CITIES data if known, else use raw
-          const known = ALL_CITIES.find(x => x.name === c.name);
-          addCity(known || c);
+    // Export local storage settings to JSON
+    function exportConfiguration() {
+      const config = {
+        cities: JSON.parse(localStorage.getItem('world_clock_cities') || '[]'),
+        preferences: JSON.parse(localStorage.getItem('world_clock_prefs') || '{}'),
+        exportedAt: new Date().toISOString()
+      };
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(config, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `world_clock_backup_${Date.now()}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    // Import settings from JSON file
+    function importConfiguration(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (data.cities) localStorage.setItem('world_clock_cities', JSON.stringify(data.cities));
+          if (data.preferences) localStorage.setItem('world_clock_prefs', JSON.stringify(data.preferences));
+          
+          alert('Preferences imported successfully! Reloading...');
+          window.location.reload();
+        } catch (err) {
+          alert('Invalid JSON file format.');
         }
-      });
-    } catch (_) {
-      alert("Could not import: invalid JSON format.");
+      };
+      reader.readAsText(file);
     }
-  };
-  reader.readAsText(file);
-  e.target.value = "";
-}
-
-/* ══════════════════════════════════════════════════════
-   UI HELPERS
-═══════════════════════════════════════════════════════ */
-function switchTab(id, btn) {
-  document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-  btn.classList.add("active");
-  document.getElementById("panel-browse").classList.toggle("hidden", id !== "browse");
-  document.getElementById("panel-selected").classList.toggle("hidden", id !== "selected");
-}
-
-function updateSelBadge() {
-  document.getElementById("sel-badge").textContent =
-    selectedCities.length ? `(${selectedCities.length})` : "";
-}
-
-function clearSearch() {
-  document.getElementById("search").value = "";
-  renderBrowseList();
-}
-
-function isDesktop() {
-  return window.matchMedia("(min-width: 900px)").matches;
-}
-
-function toggleSidebar() {
-  if (isDesktop()) {
-    sidebarOpen = !sidebarOpen;
-    document.getElementById("sidebar").classList.toggle("collapsed", !sidebarOpen);
-  } else {
-    toggleDrawer();
-  }
-}
-
-let drawerOpen = false;
-
-function openDrawer() {
-  drawerOpen = true;
-  const sidebar = document.getElementById("sidebar");
-  const scrim   = document.getElementById("drawer-scrim");
-  sidebar.classList.add("drawer-open");
-  scrim.style.display = "block";
-  requestAnimationFrame(() => scrim.classList.add("visible"));
-  // Flip chevrons to point down (collapse indicator)
-  document.getElementById("drawer-chevron").textContent  = "▼";
-  document.getElementById("drawer-chevron2").textContent = "▼";
-  document.getElementById("drawer-label").textContent    = "Close";
-}
-
-function closeDrawer() {
-  drawerOpen = false;
-  const sidebar = document.getElementById("sidebar");
-  const scrim   = document.getElementById("drawer-scrim");
-  sidebar.classList.remove("drawer-open");
-  scrim.classList.remove("visible");
-  setTimeout(() => { scrim.style.display = "none"; }, 320);
-  // Flip chevrons back to up (expand indicator)
-  document.getElementById("drawer-chevron").textContent  = "▲";
-  document.getElementById("drawer-chevron2").textContent = "▲";
-  document.getElementById("drawer-label").textContent    = "Cities";
-}
-
-function toggleDrawer() {
-  drawerOpen ? closeDrawer() : openDrawer();
-}
-
-/* ── Swipe-up / swipe-down on drawer handle ── */
-(function () {
-  let startY = 0, startTime = 0;
-  const handle = document.getElementById("drawer-handle");
-
-  handle.addEventListener("touchstart", e => {
-    startY    = e.touches[0].clientY;
-    startTime = Date.now();
-  }, { passive: true });
-
-  handle.addEventListener("touchend", e => {
-    const dy = startY - e.changedTouches[0].clientY;
-    const dt = Date.now() - startTime;
-    // Swipe up → open; swipe down → close; tap → toggle
-    if (Math.abs(dy) > 20 && dt < 400) {
-      dy > 0 ? openDrawer() : closeDrawer();
-    } else if (Math.abs(dy) < 8) {
-      toggleDrawer();
-    }
-  }, { passive: true });
-})();
-
-function slugify(name) {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-}
-
-function escQ(str) {
-  return str.replace(/'/g, "\\'");
-}
-
-/* ══════════════════════════════════════════════════════
-   PERSISTENCE  –  cities & prefs saved to localStorage
-═══════════════════════════════════════════════════════ */
-function saveCities() {
-  if (!storageAllowed()) return;
-  try {
-    const slim = selectedCities.map(({ name, country, region, lat, lng, tz }) =>
-      ({ name, country, region, lat, lng, tz })
-    );
-    localStorage.setItem(CITIES_KEY, JSON.stringify(slim));
-  } catch (_) {}
-}
-
-async function restoreCities() {
-  try {
-    const raw = localStorage.getItem(CITIES_KEY);
-    if (!raw) return;
-    const saved = JSON.parse(raw);
-    if (!Array.isArray(saved) || !saved.length) return;
-    setStatus("loading", `Restoring ${saved.length} saved ${saved.length === 1 ? "city" : "cities"}…`);
-    for (const c of saved) {
-      const canonical = ALL_CITIES.find(x => x.name === c.name) || c;
-      await addCity(canonical);
-    }
-    setStatus("ok", `Restored ${saved.length} ${saved.length === 1 ? "city" : "cities"}`);
-  } catch (_) {}
-}
-
-/* ══════════════════════════════════════════════════════
-   KEYBOARD SHORTCUT  –  Escape closes prefs
-═══════════════════════════════════════════════════════ */
-document.addEventListener("keydown", e => {
-  if (e.key === "Escape") closePrefs();
-  if ((e.ctrlKey || e.metaKey) && e.key === "k") {
-    document.getElementById("search").focus();
-    e.preventDefault();
-  }
-});
-
-/* ══════════════════════════════════════════════════════
-   SEARCH INPUT
-═══════════════════════════════════════════════════════ */
-document.getElementById("search").addEventListener("input", () => {
-  renderBrowseList();
-  // Auto-switch to browse tab if user types
-  switchTab("browse", document.getElementById("tab-browse"));
-});
-
-/* ══════════════════════════════════════════════════════
-   COOKIE CONSENT BANNER
-═══════════════════════════════════════════════════════ */
-function showConsentIfNeeded() {
-  if (localStorage.getItem("wtw_consent") === "1") return;
-  const banner = document.getElementById("consent-banner");
-  if (banner) banner.style.display = "flex";
-}
-
-function acceptConsent() {
-  localStorage.setItem("wtw_consent", "1");
-  const banner = document.getElementById("consent-banner");
-  if (banner) banner.style.display = "none";
-  // Persist anything already added this session
-  saveCities();
-  if (storageAllowed()) localStorage.setItem("wtw_prefs_v2", JSON.stringify(prefs));
-}
-
-function declineConsent() {
-  localStorage.removeItem("wtw_prefs_v2");
-  localStorage.removeItem(CITIES_KEY);
-  localStorage.removeItem("wtw_consent");
-  const banner = document.getElementById("consent-banner");
-  if (banner) banner.style.display = "none";
-}
-
-/* ══════════════════════════════════════════════════════
-   INIT
-═══════════════════════════════════════════════════════ */
-async function init() {
-  loadPrefs();
-  initMap();
-  renderBrowseList();
-  renderSelectedList();
-  showConsentIfNeeded();
-
-  // Only restore saved cities if user has consented
-  if (storageAllowed()) await restoreCities();
-
-  // Tick clock every second
-  clockTimer = setInterval(() => {
-    tickClocks();
-    if (new Date().getSeconds() === 0) updateTerminator();
-  }, 1000);
-
-  startWeatherRefresh();
-}
-
-window.addEventListener("load", init);
-</script>
+  </script>
 </body>
 </html>
