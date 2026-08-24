@@ -31,13 +31,42 @@ async function loadVideos() {
     if (!Array.isArray(videos) || videos.length === 0) throw new Error("empty");
     root.innerHTML = videos
       .slice(0, 6)
-      .map((v) => {
-        const short = v.isShort ? " is-short" : "";
-        const tag = v.isShort ? `<span class="tag">Short</span>` : "";
-        return `<li>
-          <a class="card video-card hairline hairline-hover${short}" href="${escapeHtml(v.url)}" target="_blank" rel="noreferrer">
+      .map((v) => cardHtml(v, v.isShort ? "Short" : "", viewsLabel(v.views) + " · " + formatDate(v.published)))
+      .join("");
+  } catch {
+    root.innerHTML = emptyRow("Videos will land here as soon as the feed answers. The full archive lives on YouTube.");
+  }
+}
+
+function twitchBadge(kind) {
+  if (kind === "highlight") return "Highlight";
+  if (kind === "upload") return "Upload";
+  return "VOD";
+}
+
+async function loadTwitch() {
+  const root = document.getElementById("twitch-videos");
+  if (!root) return;
+  try {
+    const res = await fetch("./twitch.json", { cache: "no-store" });
+    if (!res.ok) throw new Error("no feed");
+    const videos = await res.json();
+    if (!Array.isArray(videos) || videos.length === 0) throw new Error("empty");
+    root.innerHTML = videos
+      .slice(0, 3)
+      .map((v) => cardHtml(v, twitchBadge(v.kind), formatDate(v.published)))
+      .join("");
+  } catch {
+    root.innerHTML = emptyRow("VODs show up here after a stream. Watch live on Twitch in the meantime.");
+  }
+}
+
+function cardHtml(v, badge, meta) {
+  const tag = badge ? `<span class="tag">${escapeHtml(badge)}</span>` : "";
+  return `<li>
+          <a class="card video-card hairline hairline-hover" href="${escapeHtml(v.url)}" target="_blank" rel="noreferrer">
             <div class="video-thumb">
-              <img src="${escapeHtml(v.thumbnail)}" alt="">
+              <img src="${escapeHtml(v.thumbnail || "")}" alt="">
               <span class="play"><span>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
               </span></span>
@@ -45,17 +74,14 @@ async function loadVideos() {
             </div>
             <div class="video-meta">
               <h3>${escapeHtml(v.title)}</h3>
-              <p>${viewsLabel(v.views)} · ${formatDate(v.published)}</p>
+              <p>${escapeHtml(meta)}</p>
             </div>
           </a>
         </li>`;
-      })
-      .join("");
-  } catch {
-    root.innerHTML = `<li class="card hairline" style="grid-column:1/-1;padding:2.5rem;text-align:center;color:var(--muted);font-size:.875rem">
-      Videos will land here as soon as the feed answers. The full archive lives on YouTube.
-    </li>`;
-  }
+}
+
+function emptyRow(text) {
+  return `<li class="card hairline" style="grid-column:1/-1;padding:2.5rem;text-align:center;color:var(--muted);font-size:.875rem">${escapeHtml(text)}</li>`;
 }
 
 function setupHeader() {
@@ -89,4 +115,5 @@ function setupTikTok() {
 
 setupHeader();
 loadVideos();
+loadTwitch();
 setupTikTok();

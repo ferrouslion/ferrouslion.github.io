@@ -1,4 +1,4 @@
-name: Update YouTube feed
+name: Update video feeds
 
 on:
   schedule:
@@ -19,9 +19,11 @@ jobs:
         run: |
           python3 - <<'PY'
           import json, re, urllib.request
-          url = "https://www.youtube.com/feeds/videos.xml?channel_id=UCpGXjtF4LLnHf9ES3fNwSQQ"
-          req = urllib.request.Request(url, headers={"User-Agent": "FerrousLionSite/1.0"})
-          xml = urllib.request.urlopen(req, timeout=20).read().decode("utf-8")
+          from datetime import datetime
+
+          def get(url):
+              req = urllib.request.Request(url, headers={"User-Agent": "FerrousLionSite/1.0"})
+              return urllib.request.urlopen(req, timeout=20).read().decode("utf-8")
 
           def dec(s):
               return (s.replace("\u0026amp;", "\u0026")
@@ -29,6 +31,7 @@ jobs:
                       .replace("\u0026#39;", "\u0027")
                       .replace("\u0026apos;", "\u0027"))
 
+          xml = get("https://www.youtube.com/feeds/videos.xml?channel_id=UCpGXjtF4LLnHf9ES3fNwSQQ")
           videos = []
           for e in xml.split("<entry>")[1:]:
               vid = re.search(r"<yt:videoId>([^<]+)", e)
@@ -55,12 +58,41 @@ jobs:
               if len(videos) >= 6:
                   break
           open("videos.json", "w").write(json.dumps(videos, indent=2) + "\n")
-          print(f"wrote {len(videos)} videos")
+          print(f"wrote {len(videos)} youtube")
+
+          xml = get("https://twitchrss.appspot.com/vod/ferrouslion")
+          twitch = []
+          for item in xml.split("<item>")[1:]:
+              ident = re.search(r"<guid[^>]*>([^<]+)", item)
+              title = re.search(r"<title>([^<]*)", item)
+              link = re.search(r"<link>([^<]+)", item)
+              pub = re.search(r"<pubDate>([^<]+)", item)
+              kind = re.search(r"<category>([^<]+)", item)
+              thumb = re.search(r'img src="([^"]+)"', item)
+              if not (ident and title and pub):
+                  continue
+              raw = pub.group(1).replace(" UT", " +0000")
+              try:
+                  iso = datetime.strptime(raw, "%a, %d %b %Y %H:%M:%S %z").isoformat()
+              except ValueError:
+                  iso = pub.group(1)
+              twitch.append({
+                  "id": ident.group(1),
+                  "title": dec(title.group(1)),
+                  "url": link.group(1) if link else f"https://www.twitch.tv/videos/{ident.group(1)}",
+                  "thumbnail": dec(thumb.group(1)) if thumb else "",
+                  "published": iso,
+                  "kind": kind.group(1) if kind else "archive",
+              })
+              if len(twitch) >= 3:
+                  break
+          open("twitch.json", "w").write(json.dumps(twitch, indent=2) + "\n")
+          print(f"wrote {len(twitch)} twitch")
           PY
       - name: Commit if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add videos.json
-          git diff --cached --quiet || git commit -m "Refresh latest YouTube videos"
+          git add videos.json twitch.json
+          git diff --cached --quiet || git commit -m "Refresh latest YouTube and Twitch videos"
           git push
