@@ -61,6 +61,26 @@ async function loadTwitch() {
   }
 }
 
+async function loadRumble() {
+  const root = document.getElementById("rumble-videos");
+  const fallback = document.getElementById("rumble-fallback");
+  if (!root) return;
+  try {
+    const res = await fetch("./rumble.json", { cache: "no-store" });
+    if (!res.ok) throw new Error("no feed");
+    const videos = await res.json();
+    if (!Array.isArray(videos) || videos.length === 0) throw new Error("empty");
+    root.innerHTML = videos
+      .slice(0, 3)
+      .map((v) => cardHtml(v, "Rumble", formatDate(v.published)))
+      .join("");
+    if (fallback) fallback.hidden = true;
+  } catch {
+    root.innerHTML = "";
+    if (fallback) fallback.hidden = false;
+  }
+}
+
 function cardHtml(v, badge, meta) {
   const tag = badge ? `<span class="tag">${escapeHtml(badge)}</span>` : "";
   return `<li>
@@ -115,5 +135,6 @@ function setupTikTok() {
 
 setupHeader();
 loadVideos();
+loadRumble();
 loadTwitch();
 setupTikTok();
