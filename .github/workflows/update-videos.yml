@@ -88,11 +88,42 @@ jobs:
                   break
           open("twitch.json", "w").write(json.dumps(twitch, indent=2) + "\n")
           print(f"wrote {len(twitch)} twitch")
+
+          rumble = []
+          try:
+              html = get("https://rumble.com/user/ferrouslion")
+              seen = set()
+              for m in re.finditer(r'href="(/v[^"]+\.html)"', html):
+                  href = m.group(1)
+                  ident = re.search(r"/(v[a-zA-Z0-9]+)", href)
+                  if not ident or ident.group(1) in seen:
+                      continue
+                  seen.add(ident.group(1))
+                  chunk = html[m.start(): m.start() + 1200]
+                  title_m = re.search(r'title="([^"]{3,180})"', chunk)
+                  thumb_m = re.search(r'src="(https://[^"]+(?:jpg|jpeg|png|webp)[^"]*)"', chunk, re.I)
+                  pub_m = re.search(r'datetime="([^"]+)"', chunk)
+                  rumble.append({
+                      "id": ident.group(1),
+                      "title": dec(title_m.group(1) if title_m else "Watch on Rumble"),
+                      "url": "https://rumble.com" + href,
+                      "thumbnail": thumb_m.group(1) if thumb_m else "",
+                      "published": pub_m.group(1) if pub_m else "",
+                  })
+                  if len(rumble) >= 3:
+                      break
+          except Exception as e:
+              print("rumble skip", e)
+          if rumble:
+              open("rumble.json", "w").write(json.dumps(rumble, indent=2) + "\n")
+              print(f"wrote {len(rumble)} rumble")
+          else:
+              print("rumble empty, keeping file")
           PY
       - name: Commit if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add videos.json twitch.json
-          git diff --cached --quiet || git commit -m "Refresh latest YouTube and Twitch videos"
+          git add videos.json twitch.json rumble.json
+          git diff --cached --quiet || git commit -m "Refresh latest video feeds"
           git push
