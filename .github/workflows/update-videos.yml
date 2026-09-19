@@ -30,10 +30,10 @@ jobs:
                   return None
 
           def dec(s):
-              return (s.replace("&", "&")
-                      .replace(""", '"')
-                      .replace("&#39;", "'")
-                      .replace("'", "'"))
+              return (s.replace("\u0026amp;", "\u0026")
+                      .replace("\u0026quot;", "\u0022")
+                      .replace("\u0026#39;", "\u0027")
+                      .replace("\u0026apos;", "\u0027"))
 
           xml = get("https://www.youtube.com/feeds/videos.xml?channel_id=UCpGXjtF4LLnHf9ES3fNwSQQ")
           videos = []
