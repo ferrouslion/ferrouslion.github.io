@@ -14,7 +14,7 @@ jobs:
   update:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Fetch latest videos
         run: |
           python3 - <<'PY'
@@ -23,75 +23,87 @@ jobs:
 
           def get(url):
               req = urllib.request.Request(url, headers={"User-Agent": "FerrousLionSite/1.0"})
-              return urllib.request.urlopen(req, timeout=20).read().decode("utf-8")
+              try:
+                  return urllib.request.urlopen(req, timeout=20).read().decode("utf-8", "replace")
+              except Exception as e:
+                  print(f"fetch failed {url}: {e}")
+                  return None
 
           def dec(s):
-              return (s.replace("\u0026amp;", "\u0026")
-                      .replace("\u0026quot;", "\u0022")
-                      .replace("\u0026#39;", "\u0027")
-                      .replace("\u0026apos;", "\u0027"))
+              return (s.replace("&", "&")
+                      .replace(""", '"')
+                      .replace("&#39;", "'")
+                      .replace("'", "'"))
 
           xml = get("https://www.youtube.com/feeds/videos.xml?channel_id=UCpGXjtF4LLnHf9ES3fNwSQQ")
           videos = []
-          for e in xml.split("<entry>")[1:]:
-              vid = re.search(r"<yt:videoId>([^<]+)", e)
-              title = re.search(r"<media:title>([^<]*)", e)
-              pub = re.search(r"<published>([^<]+)", e)
-              views = re.search(r'views="(\d+)"', e)
-              href = re.search(r'<link rel="alternate" href="([^"]+)"', e)
-              if not (vid and title and pub):
-                  continue
-              t = dec(title.group(1))
-              v = int(views.group(1) if views else 0)
-              if re.search(r"live stream", t, re.I) and v == 0:
-                  continue
-              h = href.group(1) if href else f"https://www.youtube.com/watch?v={vid.group(1)}"
-              videos.append({
-                  "id": vid.group(1),
-                  "title": t,
-                  "url": h,
-                  "thumbnail": f"https://i.ytimg.com/vi/{vid.group(1)}/hqdefault.jpg",
-                  "published": pub.group(1),
-                  "views": v,
-                  "isShort": "/shorts/" in h,
-              })
-              if len(videos) >= 6:
-                  break
-          open("videos.json", "w").write(json.dumps(videos, indent=2) + "\n")
-          print(f"wrote {len(videos)} youtube")
+          if xml:
+              for e in xml.split("<entry>")[1:]:
+                  vid = re.search(r"<yt:videoId>([^<]+)", e)
+                  title = re.search(r"<media:title>([^<]*)", e)
+                  pub = re.search(r"<published>([^<]+)", e)
+                  views = re.search(r'views="(\d+)"', e)
+                  href = re.search(r'<link rel="alternate" href="([^"]+)"', e)
+                  if not (vid and title and pub):
+                      continue
+                  t = dec(title.group(1))
+                  v = int(views.group(1) if views else 0)
+                  if re.search(r"live stream", t, re.I) and v == 0:
+                      continue
+                  h = href.group(1) if href else f"https://www.youtube.com/watch?v={vid.group(1)}"
+                  videos.append({
+                      "id": vid.group(1),
+                      "title": t,
+                      "url": h,
+                      "thumbnail": f"https://i.ytimg.com/vi/{vid.group(1)}/hqdefault.jpg",
+                      "published": pub.group(1),
+                      "views": v,
+                      "isShort": "/shorts/" in h,
+                  })
+                  if len(videos) >= 6:
+                      break
+          if videos:
+              open("videos.json", "w").write(json.dumps(videos, indent=2) + "\n")
+              print(f"wrote {len(videos)} youtube")
+          else:
+              print("youtube empty, keeping file")
 
           xml = get("https://twitchrss.appspot.com/vod/ferrouslion")
           twitch = []
-          for item in xml.split("<item>")[1:]:
-              ident = re.search(r"<guid[^>]*>([^<]+)", item)
-              title = re.search(r"<title>([^<]*)", item)
-              link = re.search(r"<link>([^<]+)", item)
-              pub = re.search(r"<pubDate>([^<]+)", item)
-              kind = re.search(r"<category>([^<]+)", item)
-              thumb = re.search(r'img src="([^"]+)"', item)
-              if not (ident and title and pub):
-                  continue
-              raw = pub.group(1).replace(" UT", " +0000")
-              try:
-                  iso = datetime.strptime(raw, "%a, %d %b %Y %H:%M:%S %z").isoformat()
-              except ValueError:
-                  iso = pub.group(1)
-              twitch.append({
-                  "id": ident.group(1),
-                  "title": dec(title.group(1)),
-                  "url": link.group(1) if link else f"https://www.twitch.tv/videos/{ident.group(1)}",
-                  "thumbnail": dec(thumb.group(1)) if thumb else "",
-                  "published": iso,
-                  "kind": kind.group(1) if kind else "archive",
-              })
-              if len(twitch) >= 3:
-                  break
-          open("twitch.json", "w").write(json.dumps(twitch, indent=2) + "\n")
-          print(f"wrote {len(twitch)} twitch")
+          if xml:
+              for item in xml.split("<item>")[1:]:
+                  ident = re.search(r"<guid[^>]*>([^<]+)", item)
+                  title = re.search(r"<title>([^<]*)", item)
+                  link = re.search(r"<link>([^<]+)", item)
+                  pub = re.search(r"<pubDate>([^<]+)", item)
+                  kind = re.search(r"<category>([^<]+)", item)
+                  thumb = re.search(r'img src="([^"]+)"', item)
+                  if not (ident and title and pub):
+                      continue
+                  raw = pub.group(1).replace(" UT", " +0000")
+                  try:
+                      iso = datetime.strptime(raw, "%a, %d %b %Y %H:%M:%S %z").isoformat()
+                  except ValueError:
+                      iso = pub.group(1)
+                  twitch.append({
+                      "id": ident.group(1),
+                      "title": dec(title.group(1)),
+                      "url": link.group(1) if link else f"https://www.twitch.tv/videos/{ident.group(1)}",
+                      "thumbnail": dec(thumb.group(1)) if thumb else "",
+                      "published": iso,
+                      "kind": kind.group(1) if kind else "archive",
+                  })
+                  if len(twitch) >= 3:
+                      break
+          if twitch:
+              open("twitch.json", "w").write(json.dumps(twitch, indent=2) + "\n")
+              print(f"wrote {len(twitch)} twitch")
+          else:
+              print("twitch empty, keeping file")
 
           rumble = []
-          try:
-              html = get("https://rumble.com/user/ferrouslion")
+          html = get("https://rumble.com/user/ferrouslion")
+          if html:
               seen = set()
               for m in re.finditer(r'href="(/v[^"]+\.html)"', html):
                   href = m.group(1)
@@ -112,8 +124,6 @@ jobs:
                   })
                   if len(rumble) >= 3:
                       break
-          except Exception as e:
-              print("rumble skip", e)
           if rumble:
               open("rumble.json", "w").write(json.dumps(rumble, indent=2) + "\n")
               print(f"wrote {len(rumble)} rumble")
