@@ -115,6 +115,37 @@
     color: var(--muted);
   }
   footer a { color: #58a6ff; }
+  .jump {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 0 -1rem 1.25rem;
+    padding: 0.65rem 1rem;
+    background: rgba(13, 17, 23, 0.94);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+  }
+  .jump a {
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 0.35rem 0.9rem;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--card);
+  }
+  .jump a:hover,
+  .jump a:focus-visible {
+    border-color: var(--accent);
+    color: var(--accent);
+    outline: none;
+  }
+  section { scroll-margin-top: 3.4rem; }
   @media (max-width: 600px) {
     .races { grid-template-columns: 1fr; }
   }
@@ -130,6 +161,12 @@
   <div class="last-update" id="lastUpdate">—</div>
 </header>
 
+<nav class="jump" aria-label="Categories">
+  <a href="#governor">Governor</a>
+  <a href="#house">House</a>
+  <a href="#senate">Senate</a>
+</nav>
+
 <div class="fallback" id="fallback">
   Data feed unavailable. Check official sources:
   <a href="https://www.sos.ca.gov/elections/prior-elections/statewide-election-results" target="_blank">CA SOS</a>
@@ -137,17 +174,17 @@
   <a href="https://www.votehub.com/" target="_blank">VoteHub</a>
 </div>
 
-<section>
-  <div class="section-title">Senate</div>
-  <div class="races" id="senate"></div>
-</section>
-<section>
+<section id="governor">
   <div class="section-title">Governor</div>
-  <div class="races" id="governor"></div>
+  <div class="races" id="governor-races"></div>
 </section>
-<section>
+<section id="house">
   <div class="section-title">House Toss-Ups</div>
-  <div class="races" id="house"></div>
+  <div class="races" id="house-races"></div>
+</section>
+<section id="senate">
+  <div class="section-title">Senate</div>
+  <div class="races" id="senate-races"></div>
 </section>
 
 <footer>
@@ -199,6 +236,13 @@ const RACES = {
     { label: "VA-02", id: 87462, query: "Virginia US House 2" }
   ]
 };
+
+const SECTIONS = ["governor", "house", "senate"];
+
+function byLabel(a, b) {
+  return a.label.localeCompare(b.label, "en", { numeric: true, sensitivity: "base" });
+}
+for (const section of SECTIONS) RACES[section].sort(byLabel);
 
 const BASE = "https://civicapi.org/api/v2";
 const statusDot = document.getElementById("statusDot");
@@ -268,8 +312,8 @@ async function refresh() {
   let anySuccess = false;
   let anyFail = false;
 
-  for (const section of ["senate", "governor", "house"]) {
-    const container = document.getElementById(section);
+  for (const section of SECTIONS) {
+    const container = document.getElementById(section + "-races");
     let html = "";
     for (const race of RACES[section]) {
       const data = await fetchRace(race);
