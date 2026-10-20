@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026 US Midterms Live Returns | FerrousLion</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --muted: #8b949e;
+    --red: #e74c3c;
+    --blue: #3498db;
+    --green: #2ecc71;
+    --accent: #f39c12;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    padding: 1rem;
+  }
+  header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  h1 { font-size: 1.6rem; margin-bottom: 0.3rem; }
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  .dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #555;
+  }
+  .dot.live { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
+  .dot.error { background: #e74c3c; }
+  .last-update { font-size: 0.8rem; color: var(--muted); margin-top: 0.3rem; }
+  .section-title {
+    font-size: 1.2rem;
+    margin: 1.5rem 0 0.8rem;
+    color: var(--accent);
+    border-left: 3px solid var(--accent);
+    padding-left: 0.6rem;
+  }
+  .races {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1rem;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+  }
+  .card h3 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+  }
+  .reporting { font-size: 0.75rem; color: var(--muted); font-weight: normal; }
+  .candidate {
+    margin: 0.6rem 0;
+  }
+  .cand-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    margin-bottom: 0.2rem;
+  }
+  .party { font-size: 0.75rem; opacity: 0.8; }
+  .bar-wrap {
+    height: 18px;
+    background: #21262d;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  .bar {
+    height: 100%;
+    transition: width 0.4s ease;
+  }
+  .bar.rep { background: var(--red); }
+  .bar.dem { background: var(--blue); }
+  .bar.ind { background: var(--green); }
+  .bar.other { background: #95a5a6; }
+  .pct { font-weight: 600; }
+  .fallback {
+    display: none;
+    background: #3d1f1f;
+    border: 1px solid #e74c3c;
+    border-radius: 6px;
+    padding: 0.8rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.85rem;
+  }
+  .fallback.show { display: block; }
+  .fallback a { color: #f39c12; margin: 0 0.4rem; }
+  footer {
+    text-align: center;
+    margin-top: 2rem;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  footer a { color: #58a6ff; }
+  @media (max-width: 600px) {
+    .races { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>2026 US Midterms · Live Returns</h1>
+  <div class="status">
+    <span class="dot" id="statusDot"></span>
+    <span id="statusText">Connecting…</span>
+  </div>
+  <div class="last-update" id="lastUpdate">—</div>
+</header>
+
+<div class="fallback" id="fallback">
+  Data feed unavailable. Check official sources:
+  <a href="https://www.sos.ca.gov/elections/prior-elections/statewide-election-results" target="_blank">CA SOS</a>
+  <a href="https://azsos.gov/elections" target="_blank">AZ SOS</a>
+  <a href="https://www.votehub.com/" target="_blank">VoteHub</a>
+</div>
+
+<section>
+  <div class="section-title">Senate</div>
+  <div class="races" id="senate"></div>
+</section>
+<section>
+  <div class="section-title">Governor</div>
+  <div class="races" id="governor"></div>
+</section>
+<section>
+  <div class="section-title">House Toss-Ups</div>
+  <div class="races" id="house"></div>
+</section>
+
+<footer>
+  Data from <a href="https://civicapi.org" target="_blank">civicAPI</a> (free, no key, commercial use allowed with attribution).
+  Auto-refreshes every 30s. Single-file dashboard for GitHub Pages.
+</footer>
+
+<script>
+// Race definitions. id = civicAPI race ID where known.
+// If id is null, the page will attempt a search on first load.
+// ASSUMPTION: /api/v2/race/{id} returns { election_name, percent_reporting, candidates: [{name, party, votes, percent, winner, color}] }
+// Search: /api/v2/race/search?query=... returns { races: [{id, election_name, candidates, ...}] }
+const RACES = {
+  senate: [
+    { label: "IA Senate", id: 87151, query: "Iowa US Senate" },
+    { label: "OH Senate", id: 87527, query: "Ohio US Senate" },
+    { label: "TX Senate", id: 87438, query: "Texas US Senate" },
+    { label: "NE Senate", id: 87254, query: "Nebraska US Senate" },
+    { label: "ME Senate", id: 87188, query: "Maine US Senate" },
+    { label: "AK Senate", id: 86916, query: "Alaska US Senate" },
+    { label: "KS Senate", id: 87162, query: "Kansas US Senate" },
+    { label: "MI Senate", id: 87214, query: "Michigan US Senate" },
+    { label: "SC Senate", id: 87409, query: "South Carolina US Senate" }
+  ],
+  governor: [
+    { label: "GA Governor", id: 87088, query: "Georgia Governor" },
+    { label: "NV Governor", id: 87260, query: "Nevada Governor" },
+    { label: "WI Governor", id: 87491, query: "Wisconsin Governor" },
+    { label: "OR Governor", id: 87375, query: "Oregon Governor" },
+    { label: "IA Governor", id: 87152, query: "Iowa Governor" },
+    { label: "OH Governor", id: 87365, query: "Ohio Governor" },
+    { label: "FL Governor", id: 87069, query: "Florida Governor" },
+    { label: "AK Governor", id: 148898, query: "Alaska Governor" }
+  ],
+  house: [
+    { label: "FL-14", id: 87053, query: "Florida US House 14" },
+    { label: "FL-22", id: 87061, query: "Florida US House 22" },
+    { label: "NC-01", id: null, query: "North Carolina US House 1" },
+    { label: "OH-09", id: 87358, query: "Ohio US House 9" },
+    { label: "TX-34", id: 56013, query: "Texas US House 34" },
+    { label: "AZ-06", id: 86922, query: "Arizona US House 6" },
+    { label: "CA-22", id: 86971, query: "California US House 22" },
+    { label: "CO-08", id: 87017, query: "Colorado US House 8" },
+    { label: "IA-02", id: 87148, query: "Iowa US House 2" },
+    { label: "MI-07", id: 87207, query: "Michigan US House 7" },
+    { label: "MI-10", id: 87210, query: "Michigan US House 10" },
+    { label: "MT-01", id: null, query: "Montana US House 1" },
+    { label: "NY-17", id: 87319, query: "New York US House 17" },
+    { label: "VA-02", id: 87462, query: "Virginia US House 2" }
+  ]
+};
+
+const BASE = "https://civicapi.org/api/v2";
+const statusDot = document.getElementById("statusDot");
+const statusText = document.getElementById("statusText");
+const lastUpdate = document.getElementById("lastUpdate");
+const fallback = document.getElementById("fallback");
+
+function partyClass(party) {
+  const p = (party || "").toLowerCase();
+  if (p.includes("republican") || p === "r") return "rep";
+  if (p.includes("democrat") || p === "d") return "dem";
+  if (p.includes("independent") || p === "i" || p.includes("ind")) return "ind";
+  return "other";
+}
+
+function renderCard(race, data) {
+  if (!data || !data.candidates) return `<div class="card"><h3>${race.label}</h3><div class="candidate">No data</div></div>`;
+  const reporting = data.percent_reporting != null ? Math.round(data.percent_reporting) + "%" : "—";
+  let html = `<div class="card"><h3>${race.label} <span class="reporting">${reporting} reporting</span></h3>`;
+  // Sort candidates by percent desc
+  const cands = [...data.candidates].sort((a, b) => (b.percent || 0) - (a.percent || 0));
+  cands.forEach(c => {
+    const pct = c.percent != null ? c.percent.toFixed(1) : "0.0";
+    const cls = partyClass(c.party);
+    const winner = c.winner ? " ✓" : "";
+    html += `
+      <div class="candidate">
+        <div class="cand-header">
+          <span>${c.name}${winner} <span class="party">(${c.party || "—"})</span></span>
+          <span class="pct">${pct}%</span>
+        </div>
+        <div class="bar-wrap"><div class="bar ${cls}" style="width:${Math.min(100, c.percent || 0)}%"></div></div>
+      </div>`;
+  });
+  html += `</div>`;
+  return html;
+}
+
+async function resolveId(race) {
+  if (race.id) return race.id;
+  try {
+    const res = await fetch(`${BASE}/race/search?query=${encodeURIComponent(race.query)}`);
+    if (!res.ok) return null;
+    const json = await res.json();
+    const match = (json.races || []).find(r => r.election_date && r.election_date.includes("2026") && r.election_type !== "Primary");
+    if (match) {
+      race.id = match.id; // cache for this session
+      return match.id;
+    }
+  } catch (e) { /* ignore */ }
+  return null;
+}
+
+async function fetchRace(race) {
+  const id = await resolveId(race);
+  if (!id) return null;
+  try {
+    const res = await fetch(`${BASE}/race/${id}`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+async function refresh() {
+  let anySuccess = false;
+  let anyFail = false;
+
+  for (const section of ["senate", "governor", "house"]) {
+    const container = document.getElementById(section);
+    let html = "";
+    for (const race of RACES[section]) {
+      const data = await fetchRace(race);
+      if (data) {
+        anySuccess = true;
+        html += renderCard(race, data);
+      } else {
+        anyFail = true;
+        html += `<div class="card"><h3>${race.label}</h3><div class="candidate">Awaiting data…</div></div>`;
+      }
+    }
+    container.innerHTML = html;
+  }
+
+  const now = new Date().toLocaleTimeString();
+  lastUpdate.textContent = "Updated " + now;
+
+  if (anySuccess) {
+    statusDot.className = "dot live";
+    statusText.textContent = "Live";
+    fallback.classList.remove("show");
+  } else if (anyFail) {
+    statusDot.className = "dot error";
+    statusText.textContent = "Feed error";
+    fallback.classList.add("show");
+  }
+}
+
+// Initial load + interval
+refresh();
+setInterval(refresh, 30000);
+</script>
+</body>
+</html>
