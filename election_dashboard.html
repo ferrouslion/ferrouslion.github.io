@@ -123,6 +123,32 @@
     color: #e0c56e;
   }
   .fallback a { color: var(--gold); }
+  .jump {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 0 -20px 16px;
+    padding: 10px 20px;
+    background: rgba(13, 17, 23, 0.94);
+    border-bottom: 1px solid var(--border);
+  }
+  .jump a {
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--card);
+  }
+  .jump a:hover, .jump a:focus-visible { border-color: var(--gold); color: var(--gold); outline: none; }
+  section { scroll-margin-top: 56px; }
   @media (max-width: 640px) {
     body { padding: 12px; }
     h1 { font-size: 1.25rem; }
@@ -139,6 +165,12 @@
 </header>
 <div class="updated" id="updated">Last updated: —</div>
 
+<nav class="jump" aria-label="Categories">
+  <a href="#governor">Governor</a>
+  <a href="#house">House</a>
+  <a href="#senate">Senate</a>
+</nav>
+
 <div class="chamber">
   <div class="chamber-card">
     <h3>Senate</h3>
@@ -152,9 +184,9 @@
   </div>
 </div>
 
-<section id="senate"><h2>Senate</h2><div id="senate-races"></div></section>
 <section id="governor"><h2>Governor</h2><div id="governor-races"></div></section>
 <section id="house"><h2>House Toss-Ups</h2><div id="house-races"></div></section>
+<section id="senate"><h2>Senate</h2><div id="senate-races"></div></section>
 
 <div class="fallback" id="fallback" style="display:none">
   <strong>Primary feed down.</strong> Manual fallbacks:
@@ -204,7 +236,14 @@ const RACES = {
   ]
 };
 
-function esc(s){ return String(s||"").replace(/&/g,"&").replace(/</g,"<").replace(/>/g,">").replace(/"/g,"""); }
+function esc(s){
+  return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){
+    if (c === "&") return "\u0026amp;";
+    if (c === "<") return "\u0026lt;";
+    if (c === ">") return "\u0026gt;";
+    return "\u0026quot;";
+  });
+}
 
 function renderRace(race){
   const hasPoll = race.pollR != null && (race.pollD != null || race.pollI != null);
@@ -234,134 +273,140 @@ function renderRace(race){
 }
 
 function buildSection(key, containerId){
-  document.getElementById(containerId).innerHTML = RACES[key].map(renderRace).join("");
+  const races = RACES[key].slice().sort(function(a, b){
+    return a.label.localeCompare(b.label, "en", { numeric: true, sensitivity: "base" });
+  });
+  RACES[key] = races;
+  document.getElementById(containerId).innerHTML = races.map(renderRace).join("");
 }
 
 buildSection("senate","senate-races");
 buildSection("governor","governor-races");
 buildSection("house","house-races");
 
-function applyResults(data){
-  if(!data || !Array.isArray(data.races)) return false;
-  const byKey = {};
-  data.races.forEach(rc => {
-    const k = (rc.state+"|"+(rc.office||"")).toUpperCase();
-    byKey[k] = rc;
-  });
-  let any = false;
-  let senR=0, senD=0, houseR=0, houseD=0;
-  ["senate","governor","house"].forEach(section => {
-    RACES[section].forEach((race, idx) => {
-      const keys = [
-        race.state.toUpperCase()+"|SENATE",
-        race.state.toUpperCase()+"|U.S. SENATE",
-        race.state.toUpperCase()+"|GOVERNOR",
-        race.state.toUpperCase()+"|U.S. HOUSE",
-        race.state.toUpperCase()
-      ];
-      let rc = null;
-      for(const k of keys){ if(byKey[k]){ rc = byKey[k]; break; } }
-      if(!rc || !rc.candidates) return;
-      const map = { r:0, d:0, i:0 };
-      rc.candidates.forEach(c => {
-        const p = (c.party||"").toUpperCase();
-        if(p.includes("REP")) map.r += (c.votes||0);
-        else if(p.includes("DEM")) map.d += (c.votes||0);
-        else map.i += (c.votes||0);
-      });
-      const total = map.r + map.d + map.i;
-      if(total === 0) return;
-      any = true;
-      const rp = Math.round(map.r/total*1000)/10;
-      const dp = Math.round(map.d/total*1000)/10;
-      const ip = Math.round(map.i/total*1000)/10;
-      const el = document.querySelectorAll("#"+section+"-races .race")[idx];
-      if(!el) return;
-      let bars = "";
-      if(map.r) bars += `<div class="bar-r" style="width:${rp}%"></div>`;
-      if(map.d) bars += `<div class="bar-d" style="width:${dp}%"></div>`;
-      if(map.i) bars += `<div class="bar-i" style="width:${ip}%"></div>`;
-      el.querySelector(".bars").innerHTML = bars;
-      const cands = el.querySelectorAll(".cand");
-      cands.forEach(c => {
-        const party = c.classList.contains("r")?"r":c.classList.contains("d")?"d":"i";
-        const pct = party==="r"?rp:party==="d"?dp:ip;
-        const span = c.querySelector(".party");
-        if(span) span.textContent = span.textContent.split("·")[0].trim() + ` · ${pct}%`;
-      });
-      const meta = el.querySelector(".meta");
-      if(meta && rc.pct_reporting!=null) meta.textContent = rc.pct_reporting+"% reporting";
-      // Surprise flag
-      const pollR = race.pollR, pollD = race.pollD;
-      if(pollR != null && pollD != null && total > 0){
-        const liveMargin = rp - dp;
-        const pollMargin = pollR - pollD;
-        if(Math.abs(liveMargin - pollMargin) > 5){
-          el.classList.add("surprise");
-          if(!el.querySelector(".surprise-badge")){
-            el.insertAdjacentHTML("afterbegin", '<span class="surprise-badge">Surprise</span>');
-          }
-        }
-      }
-      // Chamber tally (crude: leading candidate)
-      if(section === "senate"){
-        if(rp > dp && rp > ip) senR++;
-        else if(dp > rp && dp > ip) senD++;
-      }
-      if(section === "house"){
-        if(rp > dp) houseR++;
-        else if(dp > rp) houseD++;
-      }
-    });
-  });
-  if(any){
-    document.getElementById("sen-r").textContent = senR || "—";
-    document.getElementById("sen-d").textContent = senD || "—";
-    document.getElementById("house-r").textContent = houseR || "—";
-    document.getElementById("house-d").textContent = houseD || "—";
-    const senNeed = 51 - Math.max(senR, senD);
-    const houseNeed = 218 - Math.max(houseR, houseD);
-    document.getElementById("sen-need").textContent = senNeed > 0 ? `need ${senNeed} more` : "majority reached";
-    document.getElementById("house-need").textContent = houseNeed > 0 ? `need ${houseNeed} more` : "majority reached";
-  }
-  return any;
+const RACE_IDS = {
+  senate: { IA:87151, OH:87527, TX:87438, NE:87254, ME:87188, AK:86916, KS:87162, MI:87214, SC:87409 },
+  governor: { GA:87088, NV:87260, WI:87491, OR:87375, IA:87152, OH:87365, FL:87069, AK:148898 },
+  house: { "FL-14":87053, "FL-22":87061, "OH-09":87358, "TX-34":56013, "AZ-06":86922, "CA-22":86971, "CO-08":87017, "IA-02":87148, "MI-07":87207, "MI-10":87210, "NY-17":87319, "VA-02":87462 }
+};
+const QUERIES = { "NC-01":"North Carolina US House 1", "MT-01":"Montana US House 1" };
+const BASE = "https://civicapi.org/api/v2";
+
+function bucket(party){
+  const p = (party || "").toLowerCase();
+  if (p.indexOf("rep") !== -1) return "r";
+  if (p.indexOf("dem") !== -1) return "d";
+  return "i";
 }
 
-async function fetchCivic(state){
-  const url = `https://civicapi.org/api/results?state=${state}&year=2026`;
-  const res = await fetch(url, { cache:"no-store" });
-  if(!res.ok) throw new Error("civicAPI "+res.status);
-  return res.json();
+async function resolveId(section, race){
+  const known = RACE_IDS[section] && RACE_IDS[section][race.state];
+  if (known) return known;
+  if (race._id) return race._id;
+  const q = QUERIES[race.state];
+  if (!q) return null;
+  const res = await fetch(BASE + "/race/search?query=" + encodeURIComponent(q), { cache:"no-store" });
+  if (!res.ok) return null;
+  const json = await res.json();
+  const match = (json.races || []).find(function(r){
+    return r.election_date && String(r.election_date).indexOf("2026") !== -1 && r.election_type !== "Primary";
+  });
+  if (match) { race._id = match.id; return match.id; }
+  return null;
+}
+
+function paint(section, idx, race, data){
+  const el = document.querySelectorAll("#" + section + "-races .race")[idx];
+  if (!el || !data || !data.candidates) return false;
+  const pct = { r:0, d:0, i:0 };
+  data.candidates.forEach(function(c){
+    pct[bucket(c.party)] += Number(c.percent) || 0;
+  });
+  let bars = "";
+  if (pct.r) bars += '<div class="bar-r" style="width:' + pct.r + '%"></div>';
+  if (pct.d) bars += '<div class="bar-d" style="width:' + pct.d + '%"></div>';
+  if (pct.i) bars += '<div class="bar-i" style="width:' + pct.i + '%"></div>';
+  if (!bars) bars = '<div style="width:100%"></div>';
+  el.querySelector(".bars").innerHTML = bars;
+  el.querySelectorAll(".cand").forEach(function(c){
+    const party = c.classList.contains("r") ? "r" : c.classList.contains("d") ? "d" : "i";
+    const span = c.querySelector(".party");
+    if (span) span.textContent = span.textContent.split("\u00b7")[0].trim() + " \u00b7 " + pct[party].toFixed(1) + "%";
+  });
+  const meta = el.querySelector(".meta");
+  if (meta) {
+    const reporting = data.percent_reporting != null ? Math.round(data.percent_reporting) : null;
+    meta.textContent = reporting != null ? reporting + "% reporting" : "awaiting results";
+  }
+  if (race.pollR != null && race.pollD != null && (data.percent_reporting || 0) > 0){
+    if (Math.abs((pct.r - pct.d) - (race.pollR - race.pollD)) > 5){
+      el.classList.add("surprise");
+      if (!el.querySelector(".surprise-badge")){
+        el.insertAdjacentHTML("afterbegin", '<span class="surprise-badge">Surprise</span>');
+      }
+    }
+  }
+  return (data.percent_reporting || 0) > 0;
 }
 
 async function poll(){
   const dot = document.getElementById("dot");
   const st = document.getElementById("statusText");
   const fb = document.getElementById("fallback");
-  try{
-    const states = ["GA","IA","OH","TX","NE","ME","AK","KS","MI","SC","NV","WI","OR","FL","NC","AZ","CA","CO","VA","NY","MT"];
-    let got = false;
-    for(const s of states){
-      try{
-        const data = await fetchCivic(s);
-        if(applyResults(data)) got = true;
-      }catch(e){ /* continue */ }
+  let got = false;
+  let senR = 0, senD = 0, houseR = 0, houseD = 0;
+  for (const section of ["governor", "house", "senate"]){
+    for (let idx = 0; idx < RACES[section].length; idx++){
+      const race = RACES[section][idx];
+      try {
+        const id = await resolveId(section, race);
+        if (!id) continue;
+        const res = await fetch(BASE + "/race/" + id, { cache:"no-store" });
+        if (!res.ok) continue;
+        const data = await res.json();
+        const live = paint(section, idx, race, data);
+        if (live){
+          got = true;
+          const el = document.querySelectorAll("#" + section + "-races .race")[idx];
+          const parties = el ? el.querySelectorAll(".cand") : [];
+          let lead = null, best = -1;
+          parties.forEach(function(c){
+            const m = (c.querySelector(".party").textContent.match(/([\d.]+)%/) || [])[1];
+            const n = m ? parseFloat(m) : 0;
+            if (n > best){ best = n; lead = c.classList.contains("r") ? "r" : c.classList.contains("d") ? "d" : "i"; }
+          });
+          if (best > 0){
+            if (section === "senate"){ if (lead === "r") senR++; else if (lead === "d") senD++; }
+            if (section === "house"){ if (lead === "r") houseR++; else if (lead === "d") houseD++; }
+          }
+        } else if (data && data.candidates) {
+          got = true;
+        }
+      } catch (e) { /* keep the card */ }
     }
-    if(got){
-      dot.classList.add("live");
-      st.textContent = "Live";
-      fb.style.display = "none";
-    } else {
-      dot.classList.remove("live");
-      st.textContent = "No data yet";
-      fb.style.display = "block";
+  }
+  if (got){
+    dot.classList.add("live");
+    st.textContent = "Live";
+    fb.style.display = "none";
+    if (senR || senD){
+      document.getElementById("sen-r").textContent = senR;
+      document.getElementById("sen-d").textContent = senD;
+      const senNeed = 51 - Math.max(senR, senD);
+      document.getElementById("sen-need").textContent = senNeed > 0 ? "need " + senNeed + " more" : "majority reached";
     }
-  }catch(e){
+    if (houseR || houseD){
+      document.getElementById("house-r").textContent = houseR;
+      document.getElementById("house-d").textContent = houseD;
+      const houseNeed = 218 - Math.max(houseR, houseD);
+      document.getElementById("house-need").textContent = houseNeed > 0 ? "need " + houseNeed + " more" : "majority reached";
+    }
+  } else {
     dot.classList.remove("live");
-    st.textContent = "Feed error";
+    st.textContent = "No data yet";
     fb.style.display = "block";
   }
-  document.getElementById("updated").textContent = "Last updated: "+new Date().toLocaleTimeString();
+  document.getElementById("updated").textContent = "Last updated: " + new Date().toLocaleTimeString();
 }
 
 poll();
