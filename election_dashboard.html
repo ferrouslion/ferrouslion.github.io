@@ -114,6 +114,15 @@
   .cand.i .party { color: var(--i); }
   .meta { font-size: 0.7rem; color: var(--muted); margin-top: 6px; }
   .prior { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+  .close { font-size: 0.72rem; color: var(--gold); white-space: nowrap; }
+  .gap { font-size: 0.88rem; font-weight: 650; margin: 2px 0 6px; }
+  .counties, .delta { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+  .board {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin: -6px 0 20px;
+    line-height: 1.45;
+  }
   .fallback {
     background: #1c1400;
     border: 1px solid var(--gold);
@@ -175,14 +184,17 @@
   <div class="chamber-card">
     <h3>Senate</h3>
     <div class="nums"><span class="r" id="sen-r">—</span> <span style="color:var(--muted)">–</span> <span class="d" id="sen-d">—</span></div>
-    <div class="need" id="sen-need">majority 51</div>
+    <div class="need" id="sen-lead">leading —</div>
+    <div class="need" id="sen-need">called seats · majority 51</div>
   </div>
   <div class="chamber-card">
     <h3>House</h3>
     <div class="nums"><span class="r" id="house-r">—</span> <span style="color:var(--muted)">–</span> <span class="d" id="house-d">—</span></div>
-    <div class="need" id="house-need">majority 218</div>
+    <div class="need" id="house-lead">leading —</div>
+    <div class="need" id="house-need">called seats · majority 218</div>
   </div>
 </div>
+<div class="board" id="board">— called · — leading · — not in<br>— of — running ahead of the last poll</div>
 
 <section id="governor"><h2>Governor</h2><div id="governor-races"></div></section>
 <section id="house"><h2>House Toss-Ups</h2><div id="house-races"></div></section>
@@ -262,12 +274,15 @@ function renderRace(race){
   if(race.d) cands += `<div class="cand d"><span class="name">${esc(race.d)}</span><span class="party">Democrat</span></div>`;
   if(race.i) cands += `<div class="cand i"><span class="name">${esc(race.i)}</span><span class="party">Independent</span></div>`;
   return `<div class="race" data-state="${race.state}">
-    <div class="race-top"><span class="race-label">${esc(race.label)}</span></div>
+    <div class="race-top"><span class="race-label">${esc(race.label)}</span><span class="close"></span></div>
     ${whyHtml}
     ${expectHtml}
     <div class="bars"><div style="width:100%"></div></div>
+    <div class="gap"></div>
     <div class="cands">${cands}</div>
     <div class="meta">awaiting results</div>
+    <div class="counties"></div>
+    <div class="delta"></div>
     ${priorHtml}
   </div>`;
 }
@@ -315,13 +330,53 @@ async function resolveId(section, race){
   return null;
 }
 
+const lastSnap = {};
+
+function fmtVotes(n){
+  return Math.round(n).toLocaleString("en-US");
+}
+
+function fmtClose(iso){
+  const d = new Date(iso);
+  if (!iso || isNaN(d.getTime())) return "";
+  const t = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "America/Chicago"
+  }).format(d);
+  return "closes " + t + " CT";
+}
+
+function stillOut(data){
+  const regions = data.region_results || {};
+  const rows = [];
+  Object.keys(regions).forEach(function(key){
+    const reg = regions[key];
+    if (!reg) return;
+    const pct = Number(reg.percent_reporting);
+    if (!(pct < 50)) return;
+    const votes = (reg.candidates || []).reduce(function(sum, c){ return sum + (Number(c.votes) || 0); }, 0);
+    if (!(pct > 0) || votes <= 0) return;
+    rows.push({ name: reg.name || key, pct: Math.round(pct), est: votes / (pct / 100) });
+  });
+  rows.sort(function(a, b){ return b.est - a.est; });
+  return rows.slice(0, 3);
+}
+
 function paint(section, idx, race, data){
   const el = document.querySelectorAll("#" + section + "-races .race")[idx];
-  if (!el || !data || !data.candidates) return false;
+  if (!el || !data || !data.candidates) return null;
   const pct = { r:0, d:0, i:0 };
+  const votes = { r:0, d:0, i:0 };
+  let winner = null;
   data.candidates.forEach(function(c){
-    pct[bucket(c.party)] += Number(c.percent) || 0;
+    const b = bucket(c.party);
+    pct[b] += Number(c.percent) || 0;
+    votes[b] += Number(c.votes) || 0;
+    if (c.winner) winner = b;
   });
+  const reporting = data.percent_reporting != null ? Number(data.percent_reporting) : 0;
+  const inYet = reporting > 0 || (votes.r + votes.d + votes.i) > 0;
   let bars = "";
   if (pct.r) bars += '<div class="bar-r" style="width:' + pct.r + '%"></div>';
   if (pct.d) bars += '<div class="bar-d" style="width:' + pct.d + '%"></div>';
@@ -333,20 +388,63 @@ function paint(section, idx, race, data){
     const span = c.querySelector(".party");
     if (span) span.textContent = span.textContent.split("\u00b7")[0].trim() + " \u00b7 " + pct[party].toFixed(1) + "%";
   });
+  const order = ["r", "d", "i"].map(function(p){ return { p: p, votes: votes[p], pct: pct[p] }; })
+    .sort(function(a, b){ return b.votes - a.votes || b.pct - a.pct; });
+  const lead = order[0];
+  const second = order[1] || { votes: 0, pct: 0 };
+  const gapEl = el.querySelector(".gap");
   const meta = el.querySelector(".meta");
-  if (meta) {
-    const reporting = data.percent_reporting != null ? Math.round(data.percent_reporting) : null;
-    meta.textContent = reporting != null ? reporting + "% reporting" : "awaiting results";
+  const letter = { r: "R", d: "D", i: "I" };
+  if (inYet && lead.votes > 0 && lead.votes !== second.votes){
+    const pts = (lead.pct - second.pct);
+    const sign = pts >= 0 ? "+" : "";
+    gapEl.textContent = letter[lead.p] + " " + sign + pts.toFixed(1) + " \u00b7 " + fmtVotes(lead.votes - second.votes) + " votes";
+    meta.textContent = sign + pts.toFixed(1) + ", " + Math.round(reporting) + "% in";
+  } else if (inYet){
+    gapEl.textContent = "tied";
+    meta.textContent = Math.round(reporting) + "% in";
+  } else {
+    gapEl.textContent = "";
+    meta.textContent = "not in";
   }
-  if (race.pollR != null && race.pollD != null && (data.percent_reporting || 0) > 0){
-    if (Math.abs((pct.r - pct.d) - (race.pollR - race.pollD)) > 5){
-      el.classList.add("surprise");
-      if (!el.querySelector(".surprise-badge")){
-        el.insertAdjacentHTML("afterbegin", '<span class="surprise-badge">Surprise</span>');
-      }
-    }
+  const closeEl = el.querySelector(".close");
+  closeEl.textContent = inYet ? "" : fmtClose(data.polls_close);
+  const out = inYet ? stillOut(data) : [];
+  const countyEl = el.querySelector(".counties");
+  countyEl.textContent = out.length
+    ? "Still out: " + out.map(function(c){ return c.name + " (" + c.pct + "%)"; }).join(", ")
+    : "";
+  const key = section + "|" + race.state;
+  const margin = pct.r - pct.d;
+  const prev = lastSnap[key];
+  const deltaEl = el.querySelector(".delta");
+  if (prev && inYet && Math.abs(margin - prev.margin) >= 0.1){
+    const swing = margin - prev.margin;
+    const who = swing > 0 ? "R" : "D";
+    deltaEl.textContent = who + " +" + Math.abs(swing).toFixed(1) + " since " + prev.at;
+  } else {
+    deltaEl.textContent = "";
   }
-  return (data.percent_reporting || 0) > 0;
+  if (inYet){
+    lastSnap[key] = { margin: margin, at: new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) };
+  }
+  const surprise = race.pollR != null && race.pollD != null && reporting >= 20
+    && Math.abs(margin - (race.pollR - race.pollD)) > 5;
+  el.classList.toggle("surprise", surprise);
+  const badge = el.querySelector(".surprise-badge");
+  if (surprise && !badge) el.insertAdjacentHTML("afterbegin", '<span class="surprise-badge">Surprise</span>');
+  if (!surprise && badge) badge.remove();
+  let ahead = false;
+  if (inYet && race.pollR != null && (race.pollD != null || race.pollI != null)){
+    const pollLead = race.pollI != null && (race.pollD == null || race.pollI >= race.pollD) && race.pollI > (race.pollR || 0)
+      ? "i" : (race.pollD != null && race.pollD > race.pollR ? "d" : "r");
+    const pollNum = pollLead === "i" ? race.pollI : pollLead === "d" ? race.pollD : race.pollR;
+    if (pollNum != null && pct[pollLead] > pollNum) ahead = true;
+  }
+  let status = "notin";
+  if (winner) status = "called";
+  else if (inYet && lead.votes > second.votes) status = "leading";
+  return { status: status, ahead: ahead, lead: inYet ? lead.p : null };
 }
 
 async function poll(){
@@ -354,53 +452,56 @@ async function poll(){
   const st = document.getElementById("statusText");
   const fb = document.getElementById("fallback");
   let got = false;
-  let senR = 0, senD = 0, houseR = 0, houseD = 0;
+  const tally = {
+    senate: { calledR:0, calledD:0, leadR:0, leadD:0 },
+    house: { calledR:0, calledD:0, leadR:0, leadD:0 }
+  };
+  let called = 0, leading = 0, notin = 0, ahead = 0, polled = 0;
   for (const section of ["governor", "house", "senate"]){
     for (let idx = 0; idx < RACES[section].length; idx++){
       const race = RACES[section][idx];
+      if (race.pollR != null && (race.pollD != null || race.pollI != null)) polled++;
       try {
         const id = await resolveId(section, race);
-        if (!id) continue;
+        if (!id) { notin++; continue; }
         const res = await fetch(BASE + "/race/" + id, { cache:"no-store" });
-        if (!res.ok) continue;
+        if (!res.ok) { notin++; continue; }
         const data = await res.json();
-        const live = paint(section, idx, race, data);
-        if (live){
-          got = true;
-          const el = document.querySelectorAll("#" + section + "-races .race")[idx];
-          const parties = el ? el.querySelectorAll(".cand") : [];
-          let lead = null, best = -1;
-          parties.forEach(function(c){
-            const m = (c.querySelector(".party").textContent.match(/([\d.]+)%/) || [])[1];
-            const n = m ? parseFloat(m) : 0;
-            if (n > best){ best = n; lead = c.classList.contains("r") ? "r" : c.classList.contains("d") ? "d" : "i"; }
-          });
-          if (best > 0){
-            if (section === "senate"){ if (lead === "r") senR++; else if (lead === "d") senD++; }
-            if (section === "house"){ if (lead === "r") houseR++; else if (lead === "d") houseD++; }
+        const info = paint(section, idx, race, data);
+        got = true;
+        if (!info) { notin++; continue; }
+        if (info.status === "called") called++;
+        else if (info.status === "leading") leading++;
+        else notin++;
+        if (info.ahead) ahead++;
+        if (section === "senate" || section === "house"){
+          const box = tally[section];
+          if (info.status === "called"){
+            if (info.lead === "r") box.calledR++;
+            else if (info.lead === "d") box.calledD++;
+          } else if (info.status === "leading"){
+            if (info.lead === "r") box.leadR++;
+            else if (info.lead === "d") box.leadD++;
           }
-        } else if (data && data.candidates) {
-          got = true;
         }
-      } catch (e) { /* keep the card */ }
+      } catch (e) { notin++; }
     }
   }
   if (got){
     dot.classList.add("live");
     st.textContent = "Live";
     fb.style.display = "none";
-    if (senR || senD){
-      document.getElementById("sen-r").textContent = senR;
-      document.getElementById("sen-d").textContent = senD;
-      const senNeed = 51 - Math.max(senR, senD);
-      document.getElementById("sen-need").textContent = senNeed > 0 ? "need " + senNeed + " more" : "majority reached";
-    }
-    if (houseR || houseD){
-      document.getElementById("house-r").textContent = houseR;
-      document.getElementById("house-d").textContent = houseD;
-      const houseNeed = 218 - Math.max(houseR, houseD);
-      document.getElementById("house-need").textContent = houseNeed > 0 ? "need " + houseNeed + " more" : "majority reached";
-    }
+    document.getElementById("sen-r").textContent = tally.senate.calledR;
+    document.getElementById("sen-d").textContent = tally.senate.calledD;
+    document.getElementById("sen-lead").textContent = "leading " + tally.senate.leadR + "\u2013" + tally.senate.leadD;
+    const senNeed = 51 - Math.max(tally.senate.calledR, tally.senate.calledD);
+    document.getElementById("sen-need").textContent = senNeed > 0 ? "need " + senNeed + " more called" : "majority reached";
+    document.getElementById("house-r").textContent = tally.house.calledR;
+    document.getElementById("house-d").textContent = tally.house.calledD;
+    document.getElementById("house-lead").textContent = "leading " + tally.house.leadR + "\u2013" + tally.house.leadD;
+    const houseNeed = 218 - Math.max(tally.house.calledR, tally.house.calledD);
+    document.getElementById("house-need").textContent = houseNeed > 0 ? "need " + houseNeed + " more called" : "majority reached";
+    document.getElementById("board").innerHTML = called + " called \u00b7 " + leading + " leading \u00b7 " + notin + " not in<br>" + ahead + " of " + polled + " running ahead of the last poll";
   } else {
     dot.classList.remove("live");
     st.textContent = "No data yet";
