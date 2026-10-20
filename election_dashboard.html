@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Election Night 2026 — Live Returns</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --r: #ff6b6b;
+    --d: #58a6ff;
+    --i: #3fb950;
+    --gold: #d4a017;
+    --surprise: #ff9f43;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  header { display: flex; align-items: baseline; gap: 16px; margin-bottom: 8px; flex-wrap: wrap; }
+  h1 { font-size: 1.6rem; letter-spacing: -0.02em; }
+  .sub { color: var(--muted); font-size: 0.9rem; }
+  .status {
+    margin-left: auto;
+    font-size: 0.8rem;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .dot.live { background: var(--i); animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .updated { font-size: 0.75rem; color: var(--muted); margin-bottom: 16px; }
+  .chamber {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .chamber-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    flex: 1;
+    min-width: 180px;
+  }
+  .chamber-card h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gold); margin-bottom: 6px; }
+  .chamber-card .nums { font-size: 1.4rem; font-weight: 700; }
+  .chamber-card .nums span.r { color: var(--r); }
+  .chamber-card .nums span.d { color: var(--d); }
+  .chamber-card .need { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+  section { margin-bottom: 28px; }
+  h2 {
+    font-size: 1.05rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--gold);
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+  }
+  .race {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    position: relative;
+  }
+  .race.surprise { border-color: var(--surprise); }
+  .surprise-badge {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: var(--surprise);
+    color: #000;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+  .race-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding-right: 70px; }
+  .race-label { font-weight: 600; font-size: 0.95rem; }
+  .why { font-size: 0.75rem; color: var(--muted); font-style: italic; margin-bottom: 8px; }
+  .expect {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .expect .poll { color: var(--text); }
+  .bars { display: flex; height: 10px; border-radius: 5px; overflow: hidden; background: #21262d; margin-bottom: 8px; }
+  .bar-r { background: var(--r); }
+  .bar-d { background: var(--d); }
+  .bar-i { background: var(--i); }
+  .cands { display: flex; justify-content: space-between; font-size: 0.85rem; gap: 8px; flex-wrap: wrap; }
+  .cand { display: flex; flex-direction: column; gap: 2px; min-width: 120px; }
+  .cand .name { font-weight: 500; }
+  .cand .party { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  .cand.r .party { color: var(--r); }
+  .cand.d .party { color: var(--d); }
+  .cand.i .party { color: var(--i); }
+  .meta { font-size: 0.7rem; color: var(--muted); margin-top: 6px; }
+  .prior { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+  .fallback {
+    background: #1c1400;
+    border: 1px solid var(--gold);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-size: 0.85rem;
+    color: #e0c56e;
+  }
+  .fallback a { color: var(--gold); }
+  @media (max-width: 640px) {
+    body { padding: 12px; }
+    h1 { font-size: 1.25rem; }
+    .race-top { padding-right: 0; }
+    .surprise-badge { position: static; display: inline-block; margin-bottom: 6px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Election Night 2026</h1>
+  <span class="sub">Live Returns Dashboard</span>
+  <div class="status"><span class="dot" id="dot"></span><span id="statusText">Connecting…</span></div>
+</header>
+<div class="updated" id="updated">Last updated: —</div>
+
+<div class="chamber">
+  <div class="chamber-card">
+    <h3>Senate</h3>
+    <div class="nums"><span class="r" id="sen-r">—</span> <span style="color:var(--muted)">–</span> <span class="d" id="sen-d">—</span></div>
+    <div class="need" id="sen-need">majority 51</div>
+  </div>
+  <div class="chamber-card">
+    <h3>House</h3>
+    <div class="nums"><span class="r" id="house-r">—</span> <span style="color:var(--muted)">–</span> <span class="d" id="house-d">—</span></div>
+    <div class="need" id="house-need">majority 218</div>
+  </div>
+</div>
+
+<section id="senate"><h2>Senate</h2><div id="senate-races"></div></section>
+<section id="governor"><h2>Governor</h2><div id="governor-races"></div></section>
+<section id="house"><h2>House Toss-Ups</h2><div id="house-races"></div></section>
+
+<div class="fallback" id="fallback" style="display:none">
+  <strong>Primary feed down.</strong> Manual fallbacks:
+  <a href="https://www.sos.ca.gov/elections/election-results" target="_blank">California SOS</a> ·
+  <a href="https://azsos.gov/elections/results" target="_blank">Arizona SOS</a> ·
+  <a href="https://results.votehub.com" target="_blank">VoteHub</a>
+</div>
+
+<script>
+const RACES = {
+  senate: [
+    { state:"IA", label:"Iowa", r:"Ashley Hinson", d:"Josh Turek", pollR:48, pollD:45, why:"Closest Senate race in the country per Kalshi.", prior:null },
+    { state:"OH", label:"Ohio (special)", r:"Jon Husted", d:"Sherrod Brown", pollR:45.3, pollD:47.8, why:"Brown seeking comeback; special election timing.", prior:null },
+    { state:"TX", label:"Texas", r:"Ken Paxton", d:"James Talarico", pollR:46, pollD:48.5, why:"Paxton under legal cloud; Talarico overperforming early.", prior:null },
+    { state:"NE", label:"Nebraska", r:"Pete Ricketts", d:null, i:"Dan Osborn (I)", pollR:47.6, pollI:46.2, why:"No Democrat on ballot — Osborn vs Ricketts is structurally unique.", prior:null },
+    { state:"ME", label:"Maine", r:"Susan Collins", d:"Troy Jackson", pollR:47.6, pollD:47, why:"Collins' long record of overperformance in Maine.", prior:null },
+    { state:"AK", label:"Alaska", r:"Dan Sullivan", d:"Mary Peltola", pollR:47.9, pollD:45.9, why:"Peltola's ranked-choice history; Sullivan's base.", prior:null },
+    { state:"KS", label:"Kansas", r:"Roger Marshall", d:"Adam Hamilton", pollR:46, pollD:47.1, why:"Hamilton within striking distance in a red state.", prior:null },
+    { state:"MI", label:"Michigan", r:"Mike Rogers", d:"Abdul El-Sayed", pollR:44.6, pollD:47.4, why:"Open seat; El-Sayed's progressive base vs Rogers' Trump-era name.", prior:null },
+    { state:"SC", label:"South Carolina", r:"Darline Graham", d:"Annie Andrews", pollR:47.6, pollD:44.5, why:"Graham just cleared a GOP runoff — least tested numbers.", prior:null }
+  ],
+  governor: [
+    { state:"GA", label:"Georgia", r:"Rick Jackson", d:"Keisha Lance Bottoms", pollR:49, pollD:47.5, why:"Bottoms' Atlanta base vs Jackson's statewide appeal.", prior:null },
+    { state:"NV", label:"Nevada", r:"Joe Lombardo", d:"Aaron Ford", pollR:48, pollD:47, why:"Lombardo's narrow 2022 win; Ford's AG profile.", prior:null },
+    { state:"WI", label:"Wisconsin", r:"Tom Tiffany", d:"David Crowley", pollR:null, pollD:null, why:"Slid into toss-up; Milwaukee County vs rural north.", prior:null },
+    { state:"OR", label:"Oregon", r:"Christine Drazan", d:"Tina Kotek", pollR:null, pollD:null, why:"Kotek's narrow 2022 win; Drazan's rematch energy.", prior:null },
+    { state:"IA", label:"Iowa", r:"Zach Lahn", d:"Rob Sand", pollR:45, pollD:49, why:"Sand's statewide name recognition as auditor.", prior:null },
+    { state:"OH", label:"Ohio", r:"Vivek Ramaswamy", d:"Amy Acton", pollR:null, pollD:null, why:"Ramaswamy's national profile vs Acton's pandemic-era visibility.", prior:null },
+    { state:"FL", label:"Florida", r:"Byron Donalds", d:"David Jolly", pollR:50, pollD:42, why:"Donalds favored; Jolly's independent streak.", prior:null },
+    { state:"AK", label:"Alaska", r:"—", d:"—", pollR:null, pollD:null, why:"Democratic flip opportunity if ranked-choice breaks.", prior:null }
+  ],
+  house: [
+    { state:"FL-14", label:"FL-14", r:"Mike Beltran", d:"Kathy Castor", pollR:46, pollD:48, why:"Castor holds a slight edge in a competitive Tampa-area seat.", prior:"Trump +4 in 2024" },
+    { state:"FL-22", label:"FL-22", r:"Casey Askar", d:"Pia Dandiya", pollR:47, pollD:46, why:"Moved from toss-up to leans R (Decision Desk).", prior:null },
+    { state:"NC-01", label:"NC-01", r:"Laurie Buckhout", d:"Don Davis", pollR:41, pollD:51, why:"Davis leading; eastern NC dynamics.", prior:null },
+    { state:"OH-09", label:"OH-09", r:"Derek Merrin", d:"Marcy Kaptur", pollR:null, pollD:null, why:"Kaptur's long tenure; Toledo-area seat.", prior:null },
+    { state:"TX-34", label:"TX-34", r:"Eric Flores", d:"Vicente Gonzalez", pollR:42, pollD:45, why:"Gonzalez's South Texas hold.", prior:null },
+    { state:"AZ-06", label:"AZ-06", r:"Juan Ciscomani", d:"JoAnna Mendoza", pollR:41, pollD:42, why:"Ciscomani's narrow 2022 win; Tucson suburbs.", prior:null },
+    { state:"CA-22", label:"CA-22", r:"David Valadao", d:"Randy Villegas", pollR:44, pollD:48, why:"Only public poll is from June — stale.", prior:null },
+    { state:"CO-08", label:"CO-08", r:"Gabe Evans", d:"Manny Rutinel", pollR:48, pollD:46, why:"Evans leading narrowly in a new competitive seat.", prior:null },
+    { state:"IA-02", label:"IA-02", r:"Joe Mitchell", d:"Lindsay James", pollR:42, pollD:43, why:"James slight edge in northeast Iowa.", prior:null },
+    { state:"MI-07", label:"MI-07", r:"Tom Barrett", d:"William Lawrence", pollR:47, pollD:48, why:"Lawrence leading in a rematch-style race.", prior:null },
+    { state:"MI-10", label:"MI-10", r:"Mike Bouchard", d:"Christina Hines", pollR:43, pollD:45, why:"Moved from toss-up to leans D (Decision Desk).", prior:null },
+    { state:"MT-01", label:"MT-01", r:"Aaron Flint", d:"Sam Forstag", pollR:44, pollD:45, why:"Trump won it by 12 in 2024; now a toss-up.", prior:"Trump +12 in 2024" },
+    { state:"NY-17", label:"NY-17", r:"Mike Lawler", d:"Cait Conley", pollR:50, pollD:47, why:"Split screen — one poll had Lawler +3, another Conley +2.", prior:null },
+    { state:"VA-02", label:"VA-02", r:"Jen Kiggans", d:"Elaine Luria", pollR:47, pollD:47, why:"Tied in July; mid-October poll had Luria +3.", prior:null }
+  ]
+};
+
+function esc(s){ return String(s||"").replace(/&/g,"&").replace(/</g,"<").replace(/>/g,">").replace(/"/g,"""); }
+
+function renderRace(race){
+  const hasPoll = race.pollR != null && (race.pollD != null || race.pollI != null);
+  let expectHtml = "";
+  if(hasPoll){
+    const parts = [];
+    if(race.pollR != null) parts.push(`R ${race.pollR}`);
+    if(race.pollD != null) parts.push(`D ${race.pollD}`);
+    if(race.pollI != null) parts.push(`I ${race.pollI}`);
+    expectHtml = `<div class="expect">Pre-election: <span class="poll">${parts.join(" / ")}</span></div>`;
+  }
+  const whyHtml = race.why ? `<div class="why">${esc(race.why)}</div>` : "";
+  const priorHtml = race.prior ? `<div class="prior">${esc(race.prior)}</div>` : "";
+  let cands = "";
+  if(race.r) cands += `<div class="cand r"><span class="name">${esc(race.r)}</span><span class="party">Republican</span></div>`;
+  if(race.d) cands += `<div class="cand d"><span class="name">${esc(race.d)}</span><span class="party">Democrat</span></div>`;
+  if(race.i) cands += `<div class="cand i"><span class="name">${esc(race.i)}</span><span class="party">Independent</span></div>`;
+  return `<div class="race" data-state="${race.state}">
+    <div class="race-top"><span class="race-label">${esc(race.label)}</span></div>
+    ${whyHtml}
+    ${expectHtml}
+    <div class="bars"><div style="width:100%"></div></div>
+    <div class="cands">${cands}</div>
+    <div class="meta">awaiting results</div>
+    ${priorHtml}
+  </div>`;
+}
+
+function buildSection(key, containerId){
+  document.getElementById(containerId).innerHTML = RACES[key].map(renderRace).join("");
+}
+
+buildSection("senate","senate-races");
+buildSection("governor","governor-races");
+buildSection("house","house-races");
+
+function applyResults(data){
+  if(!data || !Array.isArray(data.races)) return false;
+  const byKey = {};
+  data.races.forEach(rc => {
+    const k = (rc.state+"|"+(rc.office||"")).toUpperCase();
+    byKey[k] = rc;
+  });
+  let any = false;
+  let senR=0, senD=0, houseR=0, houseD=0;
+  ["senate","governor","house"].forEach(section => {
+    RACES[section].forEach((race, idx) => {
+      const keys = [
+        race.state.toUpperCase()+"|SENATE",
+        race.state.toUpperCase()+"|U.S. SENATE",
+        race.state.toUpperCase()+"|GOVERNOR",
+        race.state.toUpperCase()+"|U.S. HOUSE",
+        race.state.toUpperCase()
+      ];
+      let rc = null;
+      for(const k of keys){ if(byKey[k]){ rc = byKey[k]; break; } }
+      if(!rc || !rc.candidates) return;
+      const map = { r:0, d:0, i:0 };
+      rc.candidates.forEach(c => {
+        const p = (c.party||"").toUpperCase();
+        if(p.includes("REP")) map.r += (c.votes||0);
+        else if(p.includes("DEM")) map.d += (c.votes||0);
+        else map.i += (c.votes||0);
+      });
+      const total = map.r + map.d + map.i;
+      if(total === 0) return;
+      any = true;
+      const rp = Math.round(map.r/total*1000)/10;
+      const dp = Math.round(map.d/total*1000)/10;
+      const ip = Math.round(map.i/total*1000)/10;
+      const el = document.querySelectorAll("#"+section+"-races .race")[idx];
+      if(!el) return;
+      let bars = "";
+      if(map.r) bars += `<div class="bar-r" style="width:${rp}%"></div>`;
+      if(map.d) bars += `<div class="bar-d" style="width:${dp}%"></div>`;
+      if(map.i) bars += `<div class="bar-i" style="width:${ip}%"></div>`;
+      el.querySelector(".bars").innerHTML = bars;
+      const cands = el.querySelectorAll(".cand");
+      cands.forEach(c => {
+        const party = c.classList.contains("r")?"r":c.classList.contains("d")?"d":"i";
+        const pct = party==="r"?rp:party==="d"?dp:ip;
+        const span = c.querySelector(".party");
+        if(span) span.textContent = span.textContent.split("·")[0].trim() + ` · ${pct}%`;
+      });
+      const meta = el.querySelector(".meta");
+      if(meta && rc.pct_reporting!=null) meta.textContent = rc.pct_reporting+"% reporting";
+      // Surprise flag
+      const pollR = race.pollR, pollD = race.pollD;
+      if(pollR != null && pollD != null && total > 0){
+        const liveMargin = rp - dp;
+        const pollMargin = pollR - pollD;
+        if(Math.abs(liveMargin - pollMargin) > 5){
+          el.classList.add("surprise");
+          if(!el.querySelector(".surprise-badge")){
+            el.insertAdjacentHTML("afterbegin", '<span class="surprise-badge">Surprise</span>');
+          }
+        }
+      }
+      // Chamber tally (crude: leading candidate)
+      if(section === "senate"){
+        if(rp > dp && rp > ip) senR++;
+        else if(dp > rp && dp > ip) senD++;
+      }
+      if(section === "house"){
+        if(rp > dp) houseR++;
+        else if(dp > rp) houseD++;
+      }
+    });
+  });
+  if(any){
+    document.getElementById("sen-r").textContent = senR || "—";
+    document.getElementById("sen-d").textContent = senD || "—";
+    document.getElementById("house-r").textContent = houseR || "—";
+    document.getElementById("house-d").textContent = houseD || "—";
+    const senNeed = 51 - Math.max(senR, senD);
+    const houseNeed = 218 - Math.max(houseR, houseD);
+    document.getElementById("sen-need").textContent = senNeed > 0 ? `need ${senNeed} more` : "majority reached";
+    document.getElementById("house-need").textContent = houseNeed > 0 ? `need ${houseNeed} more` : "majority reached";
+  }
+  return any;
+}
+
+async function fetchCivic(state){
+  const url = `https://civicapi.org/api/results?state=${state}&year=2026`;
+  const res = await fetch(url, { cache:"no-store" });
+  if(!res.ok) throw new Error("civicAPI "+res.status);
+  return res.json();
+}
+
+async function poll(){
+  const dot = document.getElementById("dot");
+  const st = document.getElementById("statusText");
+  const fb = document.getElementById("fallback");
+  try{
+    const states = ["GA","IA","OH","TX","NE","ME","AK","KS","MI","SC","NV","WI","OR","FL","NC","AZ","CA","CO","VA","NY","MT"];
+    let got = false;
+    for(const s of states){
+      try{
+        const data = await fetchCivic(s);
+        if(applyResults(data)) got = true;
+      }catch(e){ /* continue */ }
+    }
+    if(got){
+      dot.classList.add("live");
+      st.textContent = "Live";
+      fb.style.display = "none";
+    } else {
+      dot.classList.remove("live");
+      st.textContent = "No data yet";
+      fb.style.display = "block";
+    }
+  }catch(e){
+    dot.classList.remove("live");
+    st.textContent = "Feed error";
+    fb.style.display = "block";
+  }
+  document.getElementById("updated").textContent = "Last updated: "+new Date().toLocaleTimeString();
+}
+
+poll();
+setInterval(poll, 30000);
+</script>
+</body>
+</html>
