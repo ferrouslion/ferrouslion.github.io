@@ -71,6 +71,7 @@
     background: var(--card);
   }
   .controls a:hover, .controls a:focus-visible { border-color: var(--gold); color: var(--gold); outline: none; }
+  .controls .sep { color: var(--muted); padding: 0 4px; user-select: none; }
   .statepick { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
   .statepick select {
     background: var(--card);
@@ -136,14 +137,15 @@
 <div class="testbanner" id="testBanner" hidden>Test data. civicAPI is simulating election night, so these calls are not real returns.</div>
 
 <nav class="controls" aria-label="Dashboard">
-  <a href="#governor">Governor</a>
-  <a href="#house">House</a>
-  <a href="#senate">Senate</a>
   <label class="statepick">State
     <select id="statePick" aria-label="State">
       <option value="">All states</option>
     </select>
   </label>
+  <span class="sep" aria-hidden="true">|</span>
+  <a href="#governor">Governor</a>
+  <a href="#house">House</a>
+  <a href="#senate">Senate</a>
 </nav>
 
 <div class="chamber">
