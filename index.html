@@ -218,22 +218,26 @@
         </div>
         <ul class="video-grid" id="videos"></ul>
 
+        <!-- Featured Rumble VODs: each JSON line is one video (title, page URL, embed id).
+             The player URL is https://rumble.com/embed/<embed id>/. Swap a VOD by replacing that line. -->
+        <script type="application/json" id="featured-rumble-data">
+[
+  {"title":"Fortnite Treasure Hunting with FerrousCat","url":"https://rumble.com/v7hxibq-fortnite-treasure-hunting-with-ferrouscat.html","embed":"v7fr5e8"},
+  {"title":"Wednesday Wind-Down: Hat Hunting in the Den | Megabonk","url":"https://rumble.com/v7hril2-wednesday-wind-down-hat-hunting-in-the-den-megabonk.html","embed":"v7fl5nk"},
+  {"title":"FerrousLion's Last Fortnitemares Night","url":"https://rumble.com/v7hmxdi-ferrouslions-last-fortnitemares-night.html","embed":"v7fgkg0"}
+]
+        </script>
         <div class="tiktok-head">
           <div>
             <p class="kicker">Rumble</p>
-            <h3>Watch live</h3>
+            <h3>Featured videos</h3>
           </div>
-          <a class="btn btn-outline btn-sm" href="https://rumble.com/user/ferrouslion" target="_blank" rel="noreferrer">ferrouslion</a>
-        </div>
-        <div class="tiktok-card hairline" id="rumble-fallback">
-          <div class="platform-row">
-            <a href="https://rumble.com/user/ferrouslion" target="_blank" rel="noreferrer">
-              <span class="platform-name">ferrouslion</span>
-              <span class="muted platform-note">Watch live and recent videos on Rumble — the default stage.</span>
-            </a>
+          <div class="featured-actions">
             <a class="btn btn-solid btn-sm" href="https://rumble.com/user/ferrouslion/live" target="_blank" rel="noreferrer">Watch Live on Rumble</a>
+            <a class="btn btn-outline btn-sm" href="https://rumble.com/user/ferrouslion" target="_blank" rel="noreferrer">More on Rumble</a>
           </div>
         </div>
+        <ul class="video-grid featured-rumble" id="featured-rumble"></ul>
 
         <div class="tiktok-head">
           <div>

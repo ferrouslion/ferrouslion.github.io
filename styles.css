@@ -502,6 +502,27 @@ button:focus-visible {
 .video-meta p { margin: 0.5rem 0 0; font-size: 0.75rem; color: var(--faint); }
 .tiktok-head { margin-top: 4rem; }
 .tiktok-head h3 { margin-top: 0.5rem; font-size: 1.25rem; }
+.featured-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.featured-rumble > li { min-width: 0; }
+.featured-player {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--raised);
+}
+.featured-player iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+.featured-card .video-meta h3 a:hover { color: var(--accent); }
 .tiktok-card {
   margin-top: 2rem;
   border-radius: 1rem;
