@@ -74,6 +74,23 @@ function loadFeaturedRumble() {
   }
 }
 
+function chicagoDateKey(now) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Chicago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+}
+
+function setupSpecialStream() {
+  const slot = document.getElementById("schedule-special");
+  if (!slot) return;
+  const eventDay = slot.getAttribute("data-date") || "";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(eventDay)) return;
+  if (chicagoDateKey(new Date()) <= eventDay) slot.hidden = false;
+}
+
 function featuredHtml(v) {
   const embed = String(v.embed || "").replace(/[^a-zA-Z0-9]/g, "");
   const src = "https://rumble.com/embed/" + embed + "/";
@@ -127,6 +144,8 @@ function setupHeader() {
   header.querySelectorAll(".nav-mobile a").forEach((a) => {
     a.addEventListener("click", () => {
       header.classList.remove("is-open");
+      toggle?.setAttribute("aria-expanded", "false");
+      toggle?.setAttribute("aria-label", "Open menu");
       document.body.style.overflow = "";
     });
   });
@@ -142,6 +161,7 @@ function setupTikTok() {
 }
 
 setupHeader();
+setupSpecialStream();
 loadVideos();
 loadFeaturedRumble();
 loadTwitch();
