@@ -117,6 +117,12 @@ button, [role="button"] { cursor: pointer; }
 .btn-outline:hover { background: var(--raised); }
 .btn-sm { min-height: 2.25rem; padding: 0 0.9rem; font-size: 0.875rem; }
 
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
 /* Header */
 .header {
   position: fixed;
@@ -161,6 +167,16 @@ button, [role="button"] { cursor: pointer; }
 }
 .nav-desk a:hover { color: var(--fg); }
 @media (min-width: 1024px) { .nav-desk { display: flex; } }
+
+.header.is-scrolled .brand span,
+.header.is-open .brand span,
+.header.is-scrolled .menu-btn,
+.header.is-open .menu-btn {
+  color: #f6f1e8;
+}
+.header.is-scrolled .nav-desk a { color: rgb(246 241 232 / 0.78); }
+.header.is-scrolled .nav-desk a:hover,
+.header.is-scrolled .nav-desk a:focus-visible { color: #f6f1e8; }
 
 .header-actions { display: flex; align-items: center; gap: 0.5rem; }
 .watch-desk { display: none; }
@@ -340,6 +356,7 @@ button, [role="button"] { cursor: pointer; }
 
 /* Games */
 .games-head h2,
+.schedule-head h2,
 .content-head h2,
 .connect-head h2 {
   margin-top: 0.75rem;
@@ -398,6 +415,44 @@ button, [role="button"] { cursor: pointer; }
 .card-body h3 { font-size: 1.125rem; }
 .card-body p { margin: 0.5rem 0 0; font-size: 0.875rem; color: var(--muted); }
 
+/* Schedule */
+.schedule-special {
+  margin-top: 2.5rem;
+  padding: 1.25rem 1.5rem;
+}
+.schedule-special h3 {
+  margin-top: 0.45rem;
+  font-size: 1.35rem;
+}
+.schedule-special p {
+  margin: 0.45rem 0 0;
+  color: var(--muted);
+}
+.schedule-grid {
+  margin: 2.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 1rem;
+}
+@media (min-width: 640px) {
+  .schedule-grid { grid-template-columns: repeat(3, 1fr); }
+}
+.schedule-slot { padding: 1.25rem; }
+.schedule-slot h3 { font-size: 1.25rem; }
+.schedule-time {
+  margin: 0.4rem 0 0;
+  font-size: 1rem;
+  font-weight: 500;
+}
+.schedule-note {
+  margin: 1.25rem 0 0;
+  max-width: 42rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.schedule-cta { margin: 1.5rem 0 0; }
+
 /* Videos */
 .content-head, .tiktok-head {
   display: flex;
@@ -453,19 +508,33 @@ button, [role="button"] { cursor: pointer; }
   background: var(--surface);
   overflow: hidden;
 }
-.tiktok-card a {
+.tiktok-embed a,
+.platform-row {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
   padding: 1.5rem;
 }
 @media (min-width: 640px) {
-  .tiktok-card a {
+  .tiktok-embed a,
+  .platform-row {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
   }
 }
+.platform-name {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+.platform-note {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.875rem;
+}
+.platform-row .btn { flex: 0 0 auto; }
 
 /* Social */
 .social-grid a {

@@ -61,24 +61,21 @@ async function loadTwitch() {
   }
 }
 
-async function loadRumble() {
-  const root = document.getElementById("rumble-videos");
-  const fallback = document.getElementById("rumble-fallback");
-  if (!root) return;
-  try {
-    const res = await fetch("./rumble.json", { cache: "no-store" });
-    if (!res.ok) throw new Error("no feed");
-    const videos = await res.json();
-    if (!Array.isArray(videos) || videos.length === 0) throw new Error("empty");
-    root.innerHTML = videos
-      .slice(0, 3)
-      .map((v) => cardHtml(v, "Rumble", formatDate(v.published)))
-      .join("");
-    if (fallback) fallback.hidden = true;
-  } catch {
-    root.innerHTML = "";
-    if (fallback) fallback.hidden = false;
-  }
+function chicagoDateKey(now) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Chicago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+}
+
+function setupSpecialStream() {
+  const slot = document.getElementById("schedule-special");
+  if (!slot) return;
+  const eventDay = slot.getAttribute("data-date") || "";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(eventDay)) return;
+  if (chicagoDateKey(new Date()) <= eventDay) slot.hidden = false;
 }
 
 function cardHtml(v, badge, meta) {
@@ -119,6 +116,8 @@ function setupHeader() {
   header.querySelectorAll(".nav-mobile a").forEach((a) => {
     a.addEventListener("click", () => {
       header.classList.remove("is-open");
+      toggle?.setAttribute("aria-expanded", "false");
+      toggle?.setAttribute("aria-label", "Open menu");
       document.body.style.overflow = "";
     });
   });
@@ -134,7 +133,7 @@ function setupTikTok() {
 }
 
 setupHeader();
+setupSpecialStream();
 loadVideos();
-loadRumble();
 loadTwitch();
 setupTikTok();
