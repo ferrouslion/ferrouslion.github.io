@@ -15,6 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      # Rumble VODs are not fetched here. The channel page returns Cloudflare
+      # 403 from GitHub-hosted runners, and Rumble's search API requires a
+      # signed-in session, so there is no reliable public feed.
       - name: Fetch latest videos
         run: |
           python3 - <<'PY'
@@ -100,40 +103,11 @@ jobs:
               print(f"wrote {len(twitch)} twitch")
           else:
               print("twitch empty, keeping file")
-
-          rumble = []
-          html = get("https://rumble.com/user/ferrouslion")
-          if html:
-              seen = set()
-              for m in re.finditer(r'href="(/v[^"]+\.html)"', html):
-                  href = m.group(1)
-                  ident = re.search(r"/(v[a-zA-Z0-9]+)", href)
-                  if not ident or ident.group(1) in seen:
-                      continue
-                  seen.add(ident.group(1))
-                  chunk = html[m.start(): m.start() + 1200]
-                  title_m = re.search(r'title="([^"]{3,180})"', chunk)
-                  thumb_m = re.search(r'src="(https://[^"]+(?:jpg|jpeg|png|webp)[^"]*)"', chunk, re.I)
-                  pub_m = re.search(r'datetime="([^"]+)"', chunk)
-                  rumble.append({
-                      "id": ident.group(1),
-                      "title": dec(title_m.group(1) if title_m else "Watch on Rumble"),
-                      "url": "https://rumble.com" + href,
-                      "thumbnail": thumb_m.group(1) if thumb_m else "",
-                      "published": pub_m.group(1) if pub_m else "",
-                  })
-                  if len(rumble) >= 3:
-                      break
-          if rumble:
-              open("rumble.json", "w").write(json.dumps(rumble, indent=2) + "\n")
-              print(f"wrote {len(rumble)} rumble")
-          else:
-              print("rumble empty, keeping file")
           PY
       - name: Commit if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add videos.json twitch.json rumble.json
+          git add videos.json twitch.json
           git diff --cached --quiet || git commit -m "Refresh latest video feeds"
           git push
