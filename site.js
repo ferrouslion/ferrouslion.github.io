@@ -61,24 +61,32 @@ async function loadTwitch() {
   }
 }
 
-async function loadRumble() {
-  const root = document.getElementById("rumble-videos");
-  const fallback = document.getElementById("rumble-fallback");
-  if (!root) return;
+function loadFeaturedRumble() {
+  const root = document.getElementById("featured-rumble");
+  const dataEl = document.getElementById("featured-rumble-data");
+  if (!root || !dataEl) return;
   try {
-    const res = await fetch("./rumble.json", { cache: "no-store" });
-    if (!res.ok) throw new Error("no feed");
-    const videos = await res.json();
+    const videos = JSON.parse(dataEl.textContent);
     if (!Array.isArray(videos) || videos.length === 0) throw new Error("empty");
-    root.innerHTML = videos
-      .slice(0, 3)
-      .map((v) => cardHtml(v, "Rumble", formatDate(v.published)))
-      .join("");
-    if (fallback) fallback.hidden = true;
+    root.innerHTML = videos.slice(0, 3).map(featuredHtml).join("");
   } catch {
-    root.innerHTML = "";
-    if (fallback) fallback.hidden = false;
+    root.innerHTML = emptyRow("Featured streams will show here. Watch live on Rumble in the meantime.");
   }
+}
+
+function featuredHtml(v) {
+  const embed = String(v.embed || "").replace(/[^a-zA-Z0-9]/g, "");
+  const src = "https://rumble.com/embed/" + embed + "/";
+  return `<li>
+          <article class="card featured-card hairline">
+            <div class="featured-player">
+              <iframe src="${src}" title="${escapeHtml(v.title)}" loading="lazy" allowfullscreen></iframe>
+            </div>
+            <div class="video-meta">
+              <h3><a href="${escapeHtml(v.url)}" target="_blank" rel="noreferrer">${escapeHtml(v.title)}</a></h3>
+            </div>
+          </article>
+        </li>`;
 }
 
 function cardHtml(v, badge, meta) {
@@ -135,6 +143,6 @@ function setupTikTok() {
 
 setupHeader();
 loadVideos();
-loadRumble();
+loadFeaturedRumble();
 loadTwitch();
 setupTikTok();
