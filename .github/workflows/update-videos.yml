@@ -18,11 +18,16 @@ jobs:
       # Rumble VODs are not fetched here. The channel page returns Cloudflare
       # 403 from GitHub-hosted runners, and Rumble's search API requires a
       # signed-in session, so there is no reliable public feed.
+      # Twitch VODs come from the Helix API. TWITCH_CLIENT_ID and
+      # TWITCH_CLIENT_SECRET are repository secrets. If they are missing, or
+      # Helix fails or returns nothing, twitch.json is left unchanged.
       - name: Fetch latest videos
+        env:
+          TWITCH_CLIENT_ID: ${{ secrets.TWITCH_CLIENT_ID }}
+          TWITCH_CLIENT_SECRET: ${{ secrets.TWITCH_CLIENT_SECRET }}
         run: |
           python3 - <<'PY'
-          import json, re, urllib.request
-          from datetime import datetime
+          import json, os, re, urllib.parse, urllib.request
 
           def get(url):
               req = urllib.request.Request(url, headers={"User-Agent": "FerrousLionSite/1.0"})
@@ -38,71 +43,196 @@ jobs:
                       .replace("\u0026#39;", "\u0027")
                       .replace("\u0026apos;", "\u0027"))
 
-          xml = get("https://www.youtube.com/feeds/videos.xml?channel_id=UCpGXjtF4LLnHf9ES3fNwSQQ")
-          videos = []
-          if xml:
-              for e in xml.split("<entry>")[1:]:
-                  vid = re.search(r"<yt:videoId>([^<]+)", e)
-                  title = re.search(r"<media:title>([^<]*)", e)
-                  pub = re.search(r"<published>([^<]+)", e)
-                  views = re.search(r'views="(\d+)"', e)
-                  href = re.search(r'<link rel="alternate" href="([^"]+)"', e)
-                  if not (vid and title and pub):
-                      continue
-                  t = dec(title.group(1))
-                  v = int(views.group(1) if views else 0)
-                  if re.search(r"live stream", t, re.I) and v == 0:
-                      continue
-                  h = href.group(1) if href else f"https://www.youtube.com/watch?v={vid.group(1)}"
-                  videos.append({
-                      "id": vid.group(1),
-                      "title": t,
-                      "url": h,
-                      "thumbnail": f"https://i.ytimg.com/vi/{vid.group(1)}/hqdefault.jpg",
-                      "published": pub.group(1),
-                      "views": v,
-                      "isShort": "/shorts/" in h,
-                  })
-                  if len(videos) >= 6:
-                      break
-          if videos:
-              open("videos.json", "w").write(json.dumps(videos, indent=2) + "\n")
-              print(f"wrote {len(videos)} youtube")
-          else:
-              print("youtube empty, keeping file")
+          def read_json(req):
+              with urllib.request.urlopen(req, timeout=20) as resp:
+                  payload = json.loads(resp.read().decode("utf-8", "replace"))
+              if not isinstance(payload, dict):
+                  return None
+              return payload
 
-          xml = get("https://twitchrss.appspot.com/vod/ferrouslion")
-          twitch = []
-          if xml:
-              for item in xml.split("<item>")[1:]:
-                  ident = re.search(r"<guid[^>]*>([^<]+)", item)
-                  title = re.search(r"<title>([^<]*)", item)
-                  link = re.search(r"<link>([^<]+)", item)
-                  pub = re.search(r"<pubDate>([^<]+)", item)
-                  kind = re.search(r"<category>([^<]+)", item)
-                  thumb = re.search(r'img src="([^"]+)"', item)
-                  if not (ident and title and pub):
-                      continue
-                  raw = pub.group(1).replace(" UT", " +0000")
-                  try:
-                      iso = datetime.strptime(raw, "%a, %d %b %Y %H:%M:%S %z").isoformat()
-                  except ValueError:
-                      iso = pub.group(1)
-                  twitch.append({
-                      "id": ident.group(1),
-                      "title": dec(title.group(1)),
-                      "url": link.group(1) if link else f"https://www.twitch.tv/videos/{ident.group(1)}",
-                      "thumbnail": dec(thumb.group(1)) if thumb else "",
-                      "published": iso,
-                      "kind": kind.group(1) if kind else "archive",
-                  })
+          def helix_headers(client_id, token):
+              return {
+                  "Client-Id": client_id,
+                  "Authorization": "Bearer " + token,
+                  "User-Agent": "FerrousLionSite/1.0",
+              }
+
+          def map_helix_video(video):
+              # site.js loadTwitch reads id, title, url, thumbnail, published, kind.
+              # Helix duration and view_count are not part of that shape.
+              if not isinstance(video, dict):
+                  return None
+              vid = video.get("id")
+              if isinstance(vid, int):
+                  vid = str(vid)
+              if not isinstance(vid, str) or not vid.strip():
+                  return None
+              vid = vid.strip()
+              title = video.get("title")
+              if not isinstance(title, str) or not title.strip():
+                  return None
+              published = video.get("published_at")
+              if not isinstance(published, str) or not published.strip():
+                  return None
+              published = published.strip()
+              if published.endswith(("Z", "z")):
+                  published = published[:-1] + "+00:00"
+              url = video.get("url")
+              if not isinstance(url, str) or not url.strip():
+                  url = "https://www.twitch.tv/videos/" + vid
+              else:
+                  url = url.strip()
+              thumb = video.get("thumbnail_url")
+              if not isinstance(thumb, str):
+                  thumb = ""
+              thumb = thumb.replace("%{width}", "640").replace("%{height}", "360")
+              kind = video.get("type")
+              if not isinstance(kind, str) or not kind.strip():
+                  kind = "archive"
+              else:
+                  kind = kind.strip()
+              return {
+                  "id": vid,
+                  "title": title,
+                  "url": url,
+                  "thumbnail": thumb,
+                  "published": published,
+                  "kind": kind,
+              }
+
+          def fetch_twitch():
+              client_id = os.environ.get("TWITCH_CLIENT_ID", "")
+              client_secret = os.environ.get("TWITCH_CLIENT_SECRET", "")
+              if (not isinstance(client_id, str) or not isinstance(client_secret, str)
+                      or not client_id.strip() or not client_secret.strip()):
+                  print("twitch skipped: missing credentials")
+                  return
+              client_id = client_id.strip()
+              client_secret = client_secret.strip()
+
+              try:
+                  body = urllib.parse.urlencode({
+                      "client_id": client_id,
+                      "client_secret": client_secret,
+                      "grant_type": "client_credentials",
+                  }).encode("utf-8")
+                  token_payload = read_json(urllib.request.Request(
+                      "https://id.twitch.tv/oauth2/token",
+                      data=body,
+                      method="POST",
+                      headers={
+                          "Content-Type": "application/x-www-form-urlencoded",
+                          "User-Agent": "FerrousLionSite/1.0",
+                      },
+                  ))
+              except Exception:
+                  print("twitch skipped: token request failed")
+                  return
+              token = token_payload.get("access_token") if token_payload else None
+              if not isinstance(token, str) or not token.strip() or any(ch.isspace() for ch in token):
+                  print("twitch skipped: token request returned no data")
+                  return
+              token = token.strip()
+
+              try:
+                  user_payload = read_json(urllib.request.Request(
+                      "https://api.twitch.tv/helix/users?" + urllib.parse.urlencode({"login": "ferrouslion"}),
+                      headers=helix_headers(client_id, token),
+                  ))
+              except Exception:
+                  print("twitch skipped: user lookup failed")
+                  return
+              users = user_payload.get("data") if user_payload else None
+              user_id = ""
+              if isinstance(users, list) and users and isinstance(users[0], dict):
+                  raw_id = users[0].get("id")
+                  if isinstance(raw_id, int):
+                      raw_id = str(raw_id)
+                  if isinstance(raw_id, str):
+                      user_id = raw_id.strip()
+              if not user_id:
+                  print("twitch skipped: user lookup returned no data")
+                  return
+
+              try:
+                  video_payload = read_json(urllib.request.Request(
+                      "https://api.twitch.tv/helix/videos?" + urllib.parse.urlencode({
+                          "user_id": user_id,
+                          "type": "archive",
+                          "first": "3",
+                      }),
+                      headers=helix_headers(client_id, token),
+                  ))
+              except Exception:
+                  print("twitch skipped: videos request failed")
+                  return
+              rows = video_payload.get("data") if video_payload else None
+              if not isinstance(rows, list) or not rows:
+                  print("twitch empty, keeping file")
+                  return
+              twitch = []
+              for row in rows:
+                  item = map_helix_video(row)
+                  if item:
+                      twitch.append(item)
                   if len(twitch) >= 3:
                       break
-          if twitch:
-              open("twitch.json", "w").write(json.dumps(twitch, indent=2) + "\n")
+              if not twitch:
+                  print("twitch empty, keeping file")
+                  return
+              text = json.dumps(twitch, indent=2) + "\n"
+              tmp = "twitch.json.tmp"
+              try:
+                  with open(tmp, "w") as fh:
+                      fh.write(text)
+                  os.replace(tmp, "twitch.json")
+              finally:
+                  try:
+                      os.remove(tmp)
+                  except OSError:
+                      pass
               print(f"wrote {len(twitch)} twitch")
-          else:
-              print("twitch empty, keeping file")
+
+          try:
+              xml = get("https://www.youtube.com/feeds/videos.xml?channel_id=UCpGXjtF4LLnHf9ES3fNwSQQ")
+              videos = []
+              if xml:
+                  for e in xml.split("<entry>")[1:]:
+                      vid = re.search(r"<yt:videoId>([^<]+)", e)
+                      title = re.search(r"<media:title>([^<]*)", e)
+                      pub = re.search(r"<published>([^<]+)", e)
+                      views = re.search(r'views="(\d+)"', e)
+                      href = re.search(r'<link rel="alternate" href="([^"]+)"', e)
+                      if not (vid and title and pub):
+                          continue
+                      t = dec(title.group(1))
+                      v = int(views.group(1) if views else 0)
+                      if re.search(r"live stream", t, re.I) and v == 0:
+                          continue
+                      h = href.group(1) if href else f"https://www.youtube.com/watch?v={vid.group(1)}"
+                      videos.append({
+                          "id": vid.group(1),
+                          "title": t,
+                          "url": h,
+                          "thumbnail": f"https://i.ytimg.com/vi/{vid.group(1)}/hqdefault.jpg",
+                          "published": pub.group(1),
+                          "views": v,
+                          "isShort": "/shorts/" in h,
+                      })
+                      if len(videos) >= 6:
+                          break
+              if videos:
+                  open("videos.json", "w").write(json.dumps(videos, indent=2) + "\n")
+                  print(f"wrote {len(videos)} youtube")
+              else:
+                  print("youtube empty, keeping file")
+          except Exception:
+              print("youtube failed, keeping file")
+
+          try:
+              fetch_twitch()
+          except Exception:
+              print("twitch skipped: request failed")
           PY
       - name: Commit if changed
         run: |
