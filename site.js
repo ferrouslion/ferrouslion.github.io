@@ -13,6 +13,22 @@ function formatDate(iso) {
   return MONTHS[d.getUTCMonth()] + " " + d.getUTCDate() + ", " + d.getUTCFullYear();
 }
 
+const CHICAGO_DATE = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/Chicago",
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+
+const RUMBLE_CHANNEL = "https://rumble.com/user/ferrouslion";
+const PUBLISHED_AT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+
+function formatChicagoDate(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return CHICAGO_DATE.format(d);
+}
+
 function escapeHtml(s) {
   return String(s)
     .replaceAll("\u0026", "\u0026amp;")
@@ -61,17 +77,156 @@ async function loadTwitch() {
   }
 }
 
+function httpsURL(value) {
+  if (typeof value !== "string") return null;
+  let url;
+  try {
+    url = new URL(value.trim());
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "https:" || url.username || url.password) return null;
+  return url;
+}
+
+function rumbleHttpsURL(value) {
+  const url = httpsURL(value);
+  if (!url || url.hostname !== "rumble.com") return null;
+  return url;
+}
+
+function validRumbleItem(item) {
+  if (!item || typeof item !== "object") return null;
+  const id = typeof item.id === "string" ? item.id.trim() : "";
+  const title = typeof item.title === "string" ? item.title.trim() : "";
+  if (!id || !title) return null;
+  const publishedAt = typeof item.publishedAt === "string" ? item.publishedAt.trim() : "";
+  if (!PUBLISHED_AT.test(publishedAt)) return null;
+  const published = new Date(publishedAt);
+  if (Number.isNaN(published.getTime())) return null;
+  const watch = rumbleHttpsURL(item.watchUrl);
+  if (!watch) return null;
+  const record = {
+    id,
+    title,
+    publishedAt,
+    publishedTime: published.getTime(),
+    watchUrl: watch.href,
+  };
+  if (Object.prototype.hasOwnProperty.call(item, "thumbnailUrl") && item.thumbnailUrl != null && item.thumbnailUrl !== "") {
+    const thumb = httpsURL(item.thumbnailUrl);
+    if (!thumb) return null;
+    record.thumbnailUrl = thumb.href;
+  }
+  if (Object.prototype.hasOwnProperty.call(item, "durationSeconds") && item.durationSeconds != null && item.durationSeconds !== "") {
+    const duration = item.durationSeconds;
+    if (typeof duration !== "number" || !Number.isFinite(duration) || duration < 0) return null;
+    record.durationSeconds = duration;
+  }
+  return record;
+}
+
+function playGlyph() {
+  const wrap = document.createElement("span");
+  wrap.className = "play";
+  wrap.setAttribute("aria-hidden", "true");
+  const bubble = document.createElement("span");
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("width", "20");
+  svg.setAttribute("height", "20");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("fill", "currentColor");
+  svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", "M8 5v14l11-7z");
+  svg.append(path);
+  bubble.append(svg);
+  wrap.append(bubble);
+  return wrap;
+}
+
+function rumbleCard(item) {
+  const li = document.createElement("li");
+  const link = document.createElement("a");
+  link.className = "card video-card hairline hairline-hover rumble-card";
+  link.href = item.watchUrl;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+
+  const thumb = document.createElement("div");
+  thumb.className = "video-thumb";
+  if (item.thumbnailUrl) {
+    const img = document.createElement("img");
+    img.alt = "";
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.addEventListener("error", () => {
+      thumb.classList.add("is-fallback");
+      img.remove();
+    });
+    img.src = item.thumbnailUrl;
+    thumb.append(img);
+  } else {
+    thumb.classList.add("is-fallback");
+  }
+  thumb.append(playGlyph());
+
+  const meta = document.createElement("div");
+  meta.className = "video-meta";
+  const title = document.createElement("h3");
+  title.textContent = item.title;
+  const dateP = document.createElement("p");
+  const time = document.createElement("time");
+  time.dateTime = item.publishedAt;
+  time.textContent = formatChicagoDate(item.publishedAt);
+  dateP.append(time);
+  const action = document.createElement("p");
+  action.className = "rumble-watch";
+  action.textContent = "Watch on Rumble";
+  meta.append(title, dateP, action);
+
+  link.append(thumb, meta);
+  li.append(link);
+  return li;
+}
+
+function rumbleEmpty(channelUrl) {
+  const li = document.createElement("li");
+  li.className = "card hairline rumble-empty";
+  const note = document.createElement("p");
+  note.textContent = "No Rumble videos to show yet.";
+  const link = document.createElement("a");
+  link.href = channelUrl;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.textContent = "Visit Rumble channel";
+  li.append(note, link);
+  return li;
+}
+
 function loadFeaturedRumble() {
   const root = document.getElementById("featured-rumble");
+  if (!root) return;
   const dataEl = document.getElementById("featured-rumble-data");
-  if (!root || !dataEl) return;
-  try {
-    const videos = JSON.parse(dataEl.textContent);
-    if (!Array.isArray(videos) || videos.length === 0) throw new Error("empty");
-    root.innerHTML = videos.slice(0, 3).map(featuredHtml).join("");
-  } catch {
-    root.innerHTML = emptyRow("Featured streams will show here. Watch live on Rumble in the meantime.");
+  const channelLink = document.getElementById("rumble-channel-link");
+  let channelUrl = RUMBLE_CHANNEL;
+  let items = [];
+  if (dataEl) {
+    try {
+      const data = JSON.parse(dataEl.textContent);
+      if (data && typeof data === "object" && !Array.isArray(data)) {
+        const channel = rumbleHttpsURL(data.channelUrl);
+        if (channel) channelUrl = channel.href;
+        if (Array.isArray(data.items)) items = data.items.map(validRumbleItem).filter(Boolean);
+      }
+    } catch {
+      items = [];
+    }
   }
+  if (channelLink) channelLink.href = channelUrl;
+  items.sort((a, b) => b.publishedTime - a.publishedTime || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+  const shown = items.slice(0, 3);
+  root.replaceChildren(...(shown.length ? shown.map(rumbleCard) : [rumbleEmpty(channelUrl)]));
 }
 
 function chicagoDateKey(now) {
@@ -89,21 +244,6 @@ function setupSpecialStream() {
   const eventDay = slot.getAttribute("data-date") || "";
   if (!/^\d{4}-\d{2}-\d{2}$/.test(eventDay)) return;
   if (chicagoDateKey(new Date()) <= eventDay) slot.hidden = false;
-}
-
-function featuredHtml(v) {
-  const embed = String(v.embed || "").replace(/[^a-zA-Z0-9]/g, "");
-  const src = "https://rumble.com/embed/" + embed + "/";
-  return `<li>
-          <article class="card featured-card hairline">
-            <div class="featured-player">
-              <iframe src="${src}" title="${escapeHtml(v.title)}" loading="lazy" allowfullscreen></iframe>
-            </div>
-            <div class="video-meta">
-              <h3><a href="${escapeHtml(v.url)}" target="_blank" rel="noreferrer">${escapeHtml(v.title)}</a></h3>
-            </div>
-          </article>
-        </li>`;
 }
 
 function cardHtml(v, badge, meta) {
