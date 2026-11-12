@@ -508,21 +508,44 @@ button:focus-visible {
   gap: 0.5rem;
 }
 .featured-rumble > li { min-width: 0; }
-.featured-player {
-  position: relative;
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  background: var(--raised);
+.rumble-latest { scroll-margin-top: 6rem; }
+.rumble-card .video-meta p { color: var(--muted); }
+.rumble-card .video-meta .rumble-watch {
+  margin-top: 0.65rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--fg);
 }
-.featured-player iframe {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  border: 0;
-  display: block;
+.rumble-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  box-shadow: inset 0 0 0 2px var(--accent), 0 0 0 1px rgb(28 25 22 / 0.2);
 }
-.featured-card .video-meta h3 a:hover { color: var(--accent); }
+.rumble-card:focus-visible .play span { opacity: 1; }
+.video-thumb.is-fallback {
+  background-image: url("./brand/crest-sm.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 4.5rem;
+}
+.rumble-empty {
+  grid-column: 1 / -1;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+}
+.rumble-empty p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.rumble-empty a {
+  display: inline-block;
+  margin-top: 0.85rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
 .tiktok-card {
   margin-top: 2rem;
   border-radius: 1rem;
@@ -610,4 +633,6 @@ button:focus-visible {
   html { scroll-behavior: auto; }
   .reveal, .d1, .d2, .d3 { animation: none !important; }
   .card-media img, .video-thumb img { transition: none; }
+  .rumble-card:hover .video-thumb img { transform: none; }
+  .rumble-card .play span { transition: none; }
 }

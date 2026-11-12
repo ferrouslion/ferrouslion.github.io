@@ -218,26 +218,53 @@
         </div>
         <ul class="video-grid" id="videos"></ul>
 
-        <!-- Featured Rumble VODs: each JSON line is one video (title, page URL, embed id).
-             The player URL is https://rumble.com/embed/<embed id>/. Swap a VOD by replacing that line. -->
+        <!-- Latest Rumble VODs. Edit this JSON only; see docs/rumble-vods.md.
+             Cards sort by publishedAt (newest first) and never load a Rumble player. -->
+        <section class="rumble-latest" id="latest-rumble" aria-labelledby="latest-rumble-title">
         <script type="application/json" id="featured-rumble-data">
-[
-  {"title":"Fortnite Treasure Hunting with FerrousCat","url":"https://rumble.com/v7hxibq-fortnite-treasure-hunting-with-ferrouscat.html","embed":"v7fr5e8"},
-  {"title":"Wednesday Wind-Down: Hat Hunting in the Den | Megabonk","url":"https://rumble.com/v7hril2-wednesday-wind-down-hat-hunting-in-the-den-megabonk.html","embed":"v7fl5nk"},
-  {"title":"FerrousLion's Last Fortnitemares Night","url":"https://rumble.com/v7hmxdi-ferrouslions-last-fortnitemares-night.html","embed":"v7fgkg0"}
-]
+{
+  "channelUrl": "https://rumble.com/user/ferrouslion",
+  "updatedAt": "2026-11-12T14:16:40Z",
+  "items": [
+    {
+      "id": "v7fr5e8",
+      "title": "Fortnite Treasure Hunting with FerrousCat",
+      "publishedAt": "2026-11-06T01:20:57+00:00",
+      "watchUrl": "https://rumble.com/v7hxibq-fortnite-treasure-hunting-with-ferrouscat.html",
+      "thumbnailUrl": "https://hugh.cdn.rumble.cloud/video/fwe2/47/s8/1/g/G/G/b/gGGbB.qR4e-small-Fortnite-Treasure-Hunting-w..jpg",
+      "durationSeconds": 5709
+    },
+    {
+      "id": "v7fl5nk",
+      "title": "Wednesday Wind-Down: Hat Hunting in the Den | Megabonk",
+      "publishedAt": "2026-11-04T22:55:12+00:00",
+      "watchUrl": "https://rumble.com/v7hril2-wednesday-wind-down-hat-hunting-in-the-den-megabonk.html",
+      "thumbnailUrl": "https://hugh.cdn.rumble.cloud/video/fww1/e4/s8/1/w/p/C/a/wpCaB.qR4e-small-Wednesday-Wind-Down-Hat-Hun..jpg",
+      "durationSeconds": 4103
+    },
+    {
+      "id": "v7fgkg0",
+      "title": "FerrousLion's Last Fortnitemares Night",
+      "publishedAt": "2026-10-31T01:08:28+00:00",
+      "watchUrl": "https://rumble.com/v7hmxdi-ferrouslions-last-fortnitemares-night.html",
+      "thumbnailUrl": "https://hugh.cdn.rumble.cloud/video/fww1/f8/s8/1/2/9/N/_/29N_A.qR4e-small-FerrousLions-Last-Fortnitem..jpg",
+      "durationSeconds": 5232
+    }
+  ]
+}
         </script>
         <div class="tiktok-head">
           <div>
             <p class="kicker">Rumble</p>
-            <h3>Featured videos</h3>
+            <h3 id="latest-rumble-title">Latest from FerrousLion</h3>
           </div>
           <div class="featured-actions">
-            <a class="btn btn-solid btn-sm" href="https://rumble.com/user/ferrouslion/live" target="_blank" rel="noreferrer">Watch Live on Rumble</a>
-            <a class="btn btn-outline btn-sm" href="https://rumble.com/user/ferrouslion" target="_blank" rel="noreferrer">More on Rumble</a>
+            <a class="btn btn-solid btn-sm" href="https://rumble.com/user/ferrouslion/live" target="_blank" rel="noopener noreferrer">Watch Live on Rumble</a>
+            <a class="btn btn-outline btn-sm" id="rumble-channel-link" href="https://rumble.com/user/ferrouslion" target="_blank" rel="noopener noreferrer">View all videos</a>
           </div>
         </div>
         <ul class="video-grid featured-rumble" id="featured-rumble"></ul>
+        </section>
 
         <div class="tiktok-head">
           <div>
