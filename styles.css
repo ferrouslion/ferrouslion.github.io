@@ -546,6 +546,83 @@ button:focus-visible {
   text-decoration: underline;
   text-underline-offset: 0.2em;
 }
+.music-list > li { min-width: 0; }
+.music-art {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: var(--raised);
+}
+.music-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  outline: none;
+  transition: transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.music-card:hover .music-art img { transform: scale(1.03); }
+.music-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  box-shadow: inset 0 0 0 2px var(--accent), 0 0 0 1px rgb(28 25 22 / 0.2);
+}
+.music-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  color: #fffaf4;
+  background:
+    radial-gradient(circle at 28% 22%, rgb(255 250 244 / 0.38), transparent 46%),
+    linear-gradient(155deg, #2a211c 0%, #8a4324 52%, #1c1916 100%);
+}
+.music-placeholder svg { width: 2.25rem; height: 2.25rem; }
+.music-initials {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+}
+.music-card .video-meta .music-type {
+  margin: 0.5rem 0 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.music-card .video-meta .music-note {
+  margin: 0.45rem 0 0;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.music-card .video-meta .music-listen {
+  margin-top: 0.65rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--fg);
+}
+.music-empty {
+  grid-column: 1 / -1;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+}
+.music-empty p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+.music-empty a {
+  display: inline-block;
+  margin-top: 0.85rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
 .tiktok-card {
   margin-top: 2rem;
   border-radius: 1rem;
@@ -635,4 +712,6 @@ button:focus-visible {
   .card-media img, .video-thumb img { transition: none; }
   .rumble-card:hover .video-thumb img { transform: none; }
   .rumble-card .play span { transition: none; }
+  .music-card:hover .music-art img { transform: none; }
+  .music-art img { transition: none; }
 }

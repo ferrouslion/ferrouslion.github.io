@@ -1,6 +1,6 @@
 # Rumble VOD gallery
 
-The homepage block “Latest from FerrousLion” is a hand-edited list. The page does not call Rumble, load a Rumble player, or run a feed job.
+The homepage block “Latest from FerrousLion” is a hand-edited list. The Videos item in the header scrolls to it (`#videos`). The page does not call Rumble, load a Rumble player, or run a feed job.
 
 Automated discovery stays off until Rumble documents an official feed or API, or gives written permission to fetch one. Do not add a scraper, a scheduled workflow, or a client for Rumble endpoints.
 

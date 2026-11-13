@@ -35,7 +35,8 @@
         <a href="#about">About</a>
         <a href="#schedule">Schedule</a>
         <a href="#play">What I Play</a>
-        <a href="#content">Latest</a>
+        <a href="#videos">Videos</a>
+        <a href="#music">Music</a>
         <a href="#connect">Connect</a>
       </nav>
       <div class="header-actions">
@@ -50,7 +51,8 @@
         <a href="#about">About</a>
         <a href="#schedule">Schedule</a>
         <a href="#play">What I Play</a>
-        <a href="#content">Latest</a>
+        <a href="#videos">Videos</a>
+        <a href="#music">Music</a>
         <a href="#connect">Connect</a>
       </nav>
       <a class="btn btn-solid" href="https://pickax.com/ferrouslion" target="_blank" rel="noreferrer">Follow me on ⛏️ Pickax</a>
@@ -216,11 +218,11 @@
           </div>
           <a class="btn btn-outline btn-sm" href="https://www.youtube.com/@ferrouslion" target="_blank" rel="noreferrer">YouTube</a>
         </div>
-        <ul class="video-grid" id="videos"></ul>
+        <ul class="video-grid" id="youtube-videos"></ul>
 
         <!-- Latest Rumble VODs. Edit this JSON only; see docs/rumble-vods.md.
              Cards sort by publishedAt (newest first) and never load a Rumble player. -->
-        <section class="rumble-latest" id="latest-rumble" aria-labelledby="latest-rumble-title">
+        <section class="rumble-latest" id="videos" aria-labelledby="videos-title">
         <script type="application/json" id="featured-rumble-data">
 {
   "channelUrl": "https://rumble.com/user/ferrouslion",
@@ -256,7 +258,7 @@
         <div class="tiktok-head">
           <div>
             <p class="kicker">Rumble</p>
-            <h3 id="latest-rumble-title">Latest from FerrousLion</h3>
+            <h3 id="videos-title">Latest from FerrousLion</h3>
           </div>
           <div class="featured-actions">
             <a class="btn btn-solid btn-sm" href="https://rumble.com/user/ferrouslion/live" target="_blank" rel="noopener noreferrer">Watch Live on Rumble</a>
@@ -295,6 +297,38 @@
             </section>
           </blockquote>
         </div>
+      </div>
+    </section>
+
+    <section class="section" id="music" aria-labelledby="music-title">
+      <div class="wrap">
+        <!-- Music on Suno. Edit this JSON only; see docs/suno-music.md.
+             The page does not call Suno. Cover art is a file in this repo. -->
+        <script type="application/json" id="suno-music-data">
+{
+  "profileUrl": null,
+  "updatedAt": "2026-11-13T02:20:00Z",
+  "items": [
+    {
+      "id": "UaKR3kLXhf8arBJf",
+      "title": "Forged, Not Born",
+      "type": "album",
+      "url": "https://suno.com/s/UaKR3kLXhf8arBJf",
+      "artUrl": "./music/forged-not-born.jpg",
+      "alt": "Forged, Not Born album cover by FerrousLion"
+    }
+  ]
+}
+        </script>
+        <div class="content-head">
+          <div>
+            <p class="kicker">Music</p>
+            <h2 id="music-title">Albums and songs</h2>
+            <p class="lead">FerrousLion on Suno. Open a card to listen on the official share page.</p>
+          </div>
+          <div class="featured-actions" id="suno-music-actions"></div>
+        </div>
+        <ul class="video-grid music-list" id="suno-music"></ul>
       </div>
     </section>
 

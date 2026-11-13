@@ -38,7 +38,7 @@ function escapeHtml(s) {
 }
 
 async function loadVideos() {
-  const root = document.getElementById("videos");
+  const root = document.getElementById("youtube-videos");
   if (!root) return;
   try {
     const res = await fetch("./videos.json", { cache: "no-store" });
@@ -229,6 +229,178 @@ function loadFeaturedRumble() {
   root.replaceChildren(...(shown.length ? shown.map(rumbleCard) : [rumbleEmpty(channelUrl)]));
 }
 
+const SUNO_HOSTS = new Set(["suno.com", "www.suno.com"]);
+
+function sunoHttpsURL(value) {
+  const url = httpsURL(value);
+  if (!url || !SUNO_HOSTS.has(url.hostname.toLowerCase())) return null;
+  return url;
+}
+
+function musicArtPath(value) {
+  if (typeof value !== "string") return null;
+  const path = value.trim();
+  if (!path || path.includes("\\") || path.includes("..") || path.includes("//")) return null;
+  if (!/^(?:\.\/|\/)[A-Za-z0-9._/-]+$/.test(path)) return null;
+  if (!/\.(?:jpe?g|png|webp)$/i.test(path)) return null;
+  return path;
+}
+
+function musicInitials(title) {
+  const words = title.replace(/[^A-Za-z0-9]+/g, " ").trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "FL";
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[1][0]).toUpperCase();
+}
+
+function musicPlaceholder(title) {
+  const tile = document.createElement("div");
+  tile.className = "music-placeholder";
+  tile.setAttribute("aria-hidden", "true");
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("width", "36");
+  svg.setAttribute("height", "36");
+  svg.setAttribute("fill", "currentColor");
+  svg.setAttribute("aria-hidden", "true");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute("d", "M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6z");
+  svg.append(path);
+  const initials = document.createElement("span");
+  initials.className = "music-initials";
+  initials.textContent = musicInitials(title);
+  tile.append(svg, initials);
+  return tile;
+}
+
+function validMusicItem(item) {
+  if (!item || typeof item !== "object") return null;
+  const id = typeof item.id === "string" ? item.id.trim() : "";
+  const title = typeof item.title === "string" ? item.title.trim() : "";
+  const type = typeof item.type === "string" ? item.type.trim().toLowerCase() : "";
+  if (!id || !title || (type !== "album" && type !== "song")) return null;
+  const page = sunoHttpsURL(item.url);
+  if (!page) return null;
+  const record = { id, title, type, url: page.href };
+  if (Object.prototype.hasOwnProperty.call(item, "artUrl") && item.artUrl != null && item.artUrl !== "") {
+    const art = musicArtPath(item.artUrl);
+    if (art) record.artUrl = art;
+  }
+  if (typeof item.alt === "string" && item.alt.trim()) record.alt = item.alt.trim();
+  if (typeof item.note === "string" && item.note.trim()) record.note = item.note.trim();
+  return record;
+}
+
+function musicCard(item) {
+  const li = document.createElement("li");
+  const link = document.createElement("a");
+  link.className = "card video-card hairline hairline-hover music-card";
+  link.href = item.url;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  const kind = item.type === "album" ? "album" : "song";
+  const kindLabel = item.type === "album" ? "Album" : "Song";
+  let label = item.title + ", " + kind + ". ";
+  if (item.note) label += item.note + " ";
+  label += "Listen on Suno (opens in a new tab)";
+  link.setAttribute("aria-label", label);
+
+  const art = document.createElement("div");
+  art.className = "music-art";
+  if (item.artUrl) {
+    const img = document.createElement("img");
+    img.alt = item.alt || item.title + " cover";
+    img.width = 600;
+    img.height = 600;
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.addEventListener("error", () => {
+      img.remove();
+      art.append(musicPlaceholder(item.title));
+    });
+    img.src = item.artUrl;
+    art.append(img);
+  } else {
+    art.append(musicPlaceholder(item.title));
+  }
+
+  const meta = document.createElement("div");
+  meta.className = "video-meta";
+  const title = document.createElement("h3");
+  title.textContent = item.title;
+  const typeP = document.createElement("p");
+  typeP.className = "music-type";
+  typeP.textContent = kindLabel;
+  meta.append(title, typeP);
+  if (item.note) {
+    const noteP = document.createElement("p");
+    noteP.className = "music-note";
+    noteP.textContent = item.note;
+    meta.append(noteP);
+  }
+  const action = document.createElement("p");
+  action.className = "music-listen";
+  action.textContent = "Listen on Suno";
+  meta.append(action);
+
+  link.append(art, meta);
+  li.append(link);
+  return li;
+}
+
+function musicEmpty(profileUrl) {
+  const li = document.createElement("li");
+  li.className = "card hairline music-empty";
+  const note = document.createElement("p");
+  note.textContent = "No music to show yet. Albums and songs will appear here once they are added.";
+  li.append(note);
+  if (profileUrl) {
+    const link = document.createElement("a");
+    link.href = profileUrl;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = "Open Suno profile";
+    link.setAttribute("aria-label", "Open Suno profile (opens in a new tab)");
+    li.append(link);
+  }
+  return li;
+}
+
+function loadSunoMusic() {
+  const root = document.getElementById("suno-music");
+  if (!root) return;
+  const dataEl = document.getElementById("suno-music-data");
+  const actions = document.getElementById("suno-music-actions");
+  let profileUrl = null;
+  let items = [];
+  if (dataEl) {
+    try {
+      const data = JSON.parse(dataEl.textContent);
+      if (data && typeof data === "object" && !Array.isArray(data)) {
+        if (data.profileUrl != null && data.profileUrl !== "") {
+          const profile = sunoHttpsURL(data.profileUrl);
+          if (profile) profileUrl = profile.href;
+        }
+        if (Array.isArray(data.items)) items = data.items.map(validMusicItem).filter(Boolean);
+      }
+    } catch {
+      items = [];
+    }
+  }
+  if (actions) actions.replaceChildren();
+  if (actions && profileUrl) {
+    const link = document.createElement("a");
+    link.className = "btn btn-outline btn-sm";
+    link.href = profileUrl;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = "Suno profile";
+    link.setAttribute("aria-label", "Suno profile (opens in a new tab)");
+    actions.append(link);
+  }
+  root.replaceChildren(...(items.length ? items.map(musicCard) : [musicEmpty(profileUrl)]));
+}
+
 function chicagoDateKey(now) {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Chicago",
@@ -304,5 +476,6 @@ setupHeader();
 setupSpecialStream();
 loadVideos();
 loadFeaturedRumble();
+loadSunoMusic();
 loadTwitch();
 setupTikTok();
