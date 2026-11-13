@@ -468,6 +468,17 @@ button:focus-visible {
 .card-body { padding: 1.25rem; }
 .card-body h3 { font-size: 1.125rem; }
 .card-body p { margin: 0.5rem 0 0; font-size: 0.875rem; color: var(--muted); }
+.card-body p.creator-code {
+  display: block;
+  margin: 0.75rem 0 0;
+  padding: 0.45rem 0.7rem;
+  border-radius: 0.5rem;
+  background: var(--raised);
+  color: var(--fg);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
 
 /* Schedule */
 .schedule-special {
