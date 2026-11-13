@@ -1,10 +1,12 @@
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
 function viewsLabel(views) {
-  if (views >= 1_000_000) return (views / 1_000_000).toFixed(1) + "M views";
-  if (views >= 1_000) return (views / 1_000).toFixed(1) + "K views";
-  if (views === 1) return "1 view";
-  return views + " views";
+  const n = typeof views === "number" ? views : Number(views);
+  if (!Number.isFinite(n) || n < 0) return "";
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M views";
+  if (n >= 1_000) return (n / 1_000).toFixed(1) + "K views";
+  if (n === 1) return "1 view";
+  return Math.floor(n) + " views";
 }
 
 function formatDate(iso) {
@@ -29,12 +31,58 @@ function formatChicagoDate(iso) {
   return CHICAGO_DATE.format(d);
 }
 
-function escapeHtml(s) {
-  return String(s)
-    .replaceAll("\u0026", "\u0026amp;")
-    .replaceAll("\u003c", "\u0026lt;")
-    .replaceAll("\u003e", "\u0026gt;")
-    .replaceAll("\u0022", "\u0026quot;");
+function validFeedItem(item) {
+  if (!item || typeof item !== "object") return null;
+  const title = typeof item.title === "string" ? item.title.trim() : "";
+  const page = httpsURL(item.url);
+  if (!title || !page) return null;
+  const published = typeof item.published === "string" ? item.published.trim() : "";
+  const publishedTime = new Date(published).getTime();
+  const record = {
+    title,
+    url: page.href,
+    published,
+    publishedTime: Number.isNaN(publishedTime) ? 0 : publishedTime,
+    id: typeof item.id === "string" && item.id.trim() ? item.id.trim() : "",
+    views: item.views,
+    isShort: item.isShort === true,
+    kind: typeof item.kind === "string" ? item.kind : "",
+  };
+  if (typeof item.thumbnail === "string" && item.thumbnail.trim()) {
+    const thumb = httpsURL(item.thumbnail);
+    if (thumb) record.thumbnail = thumb.href;
+  }
+  return record;
+}
+
+function prepareFeed(list, limit) {
+  if (!Array.isArray(list)) return [];
+  const ranked = [];
+  list.forEach((raw, index) => {
+    const item = validFeedItem(raw);
+    if (!item) return;
+    item.order = index;
+    ranked.push(item);
+  });
+  ranked.sort((a, b) => b.publishedTime - a.publishedTime || a.order - b.order);
+  const seenId = new Set();
+  const seenUrl = new Set();
+  const unique = [];
+  for (const item of ranked) {
+    if ((item.id && seenId.has(item.id)) || seenUrl.has(item.url)) continue;
+    if (item.id) seenId.add(item.id);
+    seenUrl.add(item.url);
+    unique.push(item);
+    if (unique.length === limit) break;
+  }
+  return unique;
+}
+
+function youtubeMeta(v) {
+  const views = viewsLabel(v.views);
+  const date = formatDate(v.published);
+  if (views && date) return views + " · " + date;
+  return views || date;
 }
 
 async function loadVideos() {
@@ -44,13 +92,11 @@ async function loadVideos() {
     const res = await fetch("./videos.json", { cache: "no-store" });
     if (!res.ok) throw new Error("no feed");
     const videos = await res.json();
-    if (!Array.isArray(videos) || videos.length === 0) throw new Error("empty");
-    root.innerHTML = videos
-      .slice(0, 6)
-      .map((v) => cardHtml(v, v.isShort ? "Short" : "", viewsLabel(v.views) + " · " + formatDate(v.published)))
-      .join("");
+    const items = prepareFeed(videos, 6);
+    if (items.length === 0) throw new Error("empty");
+    root.replaceChildren(...items.map((v) => feedCard(v, v.isShort ? "Short" : "", youtubeMeta(v))));
   } catch {
-    root.innerHTML = emptyRow("Videos will land here as soon as the feed answers. The full archive lives on YouTube.");
+    root.replaceChildren(emptyCard("Videos will land here as soon as the feed answers. The full archive lives on YouTube."));
   }
 }
 
@@ -67,13 +113,11 @@ async function loadTwitch() {
     const res = await fetch("./twitch.json", { cache: "no-store" });
     if (!res.ok) throw new Error("no feed");
     const videos = await res.json();
-    if (!Array.isArray(videos) || videos.length === 0) throw new Error("empty");
-    root.innerHTML = videos
-      .slice(0, 3)
-      .map((v) => cardHtml(v, twitchBadge(v.kind), formatDate(v.published)))
-      .join("");
+    const items = prepareFeed(videos, 3);
+    if (items.length === 0) throw new Error("empty");
+    root.replaceChildren(...items.map((v) => feedCard(v, twitchBadge(v.kind), formatDate(v.published))));
   } catch {
-    root.innerHTML = emptyRow("VODs show up here after a stream. Watch live on Twitch in the meantime.");
+    root.replaceChildren(emptyCard("VODs show up here after a stream. Watch live on Twitch in the meantime."));
   }
 }
 
@@ -225,7 +269,16 @@ function loadFeaturedRumble() {
   }
   if (channelLink) channelLink.href = channelUrl;
   items.sort((a, b) => b.publishedTime - a.publishedTime || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
-  const shown = items.slice(0, 3);
+  const seenId = new Set();
+  const seenUrl = new Set();
+  const unique = [];
+  for (const item of items) {
+    if (seenId.has(item.id) || seenUrl.has(item.watchUrl)) continue;
+    seenId.add(item.id);
+    seenUrl.add(item.watchUrl);
+    unique.push(item);
+  }
+  const shown = unique.slice(0, 3);
   root.replaceChildren(...(shown.length ? shown.map(rumbleCard) : [rumbleEmpty(channelUrl)]));
 }
 
@@ -418,27 +471,57 @@ function setupSpecialStream() {
   if (chicagoDateKey(new Date()) <= eventDay) slot.hidden = false;
 }
 
-function cardHtml(v, badge, meta) {
-  const tag = badge ? `<span class="tag">${escapeHtml(badge)}</span>` : "";
-  return `<li>
-          <a class="card video-card hairline hairline-hover" href="${escapeHtml(v.url)}" target="_blank" rel="noreferrer">
-            <div class="video-thumb">
-              <img src="${escapeHtml(v.thumbnail || "")}" alt="">
-              <span class="play"><span>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
-              </span></span>
-              ${tag}
-            </div>
-            <div class="video-meta">
-              <h3>${escapeHtml(v.title)}</h3>
-              <p>${escapeHtml(meta)}</p>
-            </div>
-          </a>
-        </li>`;
+function feedCard(v, badge, meta) {
+  const li = document.createElement("li");
+  const link = document.createElement("a");
+  link.className = "card video-card hairline hairline-hover";
+  link.href = v.url;
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+
+  const thumb = document.createElement("div");
+  thumb.className = "video-thumb";
+  if (v.thumbnail) {
+    const img = document.createElement("img");
+    img.alt = "";
+    img.loading = "lazy";
+    img.decoding = "async";
+    img.addEventListener("error", () => {
+      thumb.classList.add("is-fallback");
+      img.remove();
+    });
+    img.src = v.thumbnail;
+    thumb.append(img);
+  } else {
+    thumb.classList.add("is-fallback");
+  }
+  thumb.append(playGlyph());
+  if (badge) {
+    const tag = document.createElement("span");
+    tag.className = "tag";
+    tag.textContent = badge;
+    thumb.append(tag);
+  }
+
+  const metaDiv = document.createElement("div");
+  metaDiv.className = "video-meta";
+  const title = document.createElement("h3");
+  title.textContent = v.title;
+  const metaP = document.createElement("p");
+  metaP.textContent = meta;
+  metaDiv.append(title, metaP);
+  link.append(thumb, metaDiv);
+  li.append(link);
+  return li;
 }
 
-function emptyRow(text) {
-  return `<li class="card hairline" style="grid-column:1/-1;padding:2.5rem;text-align:center;color:var(--muted);font-size:.875rem">${escapeHtml(text)}</li>`;
+function emptyCard(text) {
+  const li = document.createElement("li");
+  li.className = "card hairline feed-empty";
+  const note = document.createElement("p");
+  note.textContent = text;
+  li.append(note);
+  return li;
 }
 
 function setupHeader() {

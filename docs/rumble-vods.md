@@ -1,6 +1,6 @@
 # Rumble VOD gallery
 
-The homepage block “Latest from FerrousLion” is a short list in `index.html`, inside `<script type="application/json" id="featured-rumble-data">`. The Videos item in the header scrolls to it (`#videos`). The page does not call Rumble, load a Rumble player, or run a feed job.
+The homepage Rumble gallery is a short list in `index.html`, inside `<script type="application/json" id="featured-rumble-data">`, rendered into `#featured-rumble`. The Videos item in the header scrolls to the latest content section (`#videos`), which includes this gallery. The page does not call Rumble, load a Rumble player, or run a feed job.
 
 There is no `rumble-vods.json`. The list stays in that inline block so the static page can render it without a fetch.
 
