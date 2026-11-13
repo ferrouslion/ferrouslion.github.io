@@ -1,0 +1,171 @@
+# Manual add of one Rumble VOD. workflow_dispatch only: no schedule, no fetch.
+# Opens a pull request. Does not merge, does not push to main, does not deploy.
+# There is no production build; the "test" step is the unit tests and site check.
+
+name: Add New Rumble VOD
+
+on:
+  workflow_dispatch:
+    inputs:
+      video_url:
+        description: "Canonical watch URL: https://rumble.com/<videoId>-<slug>.html. Query and fragment are stripped."
+        required: true
+        type: string
+      title:
+        description: "Card title, 1–300 characters. Verify with oEmbed first. This workflow does not contact Rumble."
+        required: true
+        type: string
+      published_at:
+        description: "ISO 8601 with seconds. Z or ±hh:mm is converted to UTC. No offset is interpreted as America/Chicago, then converted to UTC. Example: 2026-11-12T18:30:00 or 2026-11-13T00:30:00Z."
+        required: true
+        type: string
+      thumbnail_url:
+        description: "Optional https thumbnail on *.rumble.cloud, *.rmbl.ws, or *.rumble.com. Leave empty for the crest fallback."
+        required: false
+        type: string
+      duration_seconds:
+        description: "Optional whole seconds, up to 48 hours. The card does not display duration. Leave empty to omit."
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  add-vod:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: test
+        run: bash scripts/rumble_vods/run_checks.sh
+
+      - name: Add VOD to the featured block
+        id: add
+        env:
+          VIDEO_URL: ${{ inputs.video_url }}
+          TITLE: ${{ inputs.title }}
+          PUBLISHED_AT: ${{ inputs.published_at }}
+          THUMBNAIL_URL: ${{ inputs.thumbnail_url }}
+          DURATION_SECONDS: ${{ inputs.duration_seconds }}
+          RESULT_PATH: ${{ runner.temp }}/rumble-vod-result.json
+          PR_DIR: ${{ runner.temp }}/rumble-pr
+        run: |
+          set -euo pipefail
+          VIDEO_URL="${VIDEO_URL:-}"
+          TITLE="${TITLE:-}"
+          PUBLISHED_AT="${PUBLISHED_AT:-}"
+          THUMBNAIL_URL="${THUMBNAIL_URL:-}"
+          DURATION_SECONDS="${DURATION_SECONDS:-}"
+          python3 -m scripts.rumble_vods.add_vod \
+            --index index.html \
+            --video-url "$VIDEO_URL" \
+            --title "$TITLE" \
+            --published-at "$PUBLISHED_AT" \
+            --thumbnail-url "$THUMBNAIL_URL" \
+            --duration-seconds "$DURATION_SECONDS" \
+            --result "$RESULT_PATH" \
+            --write-pr-dir "$PR_DIR"
+
+      - name: Check updated gallery block
+        id: check
+        if: steps.add.outputs.changed == 'true'
+        run: python3 -m scripts.rumble_vods.check_site --index index.html
+
+      - name: Open pull request
+        id: pr
+        if: steps.add.outputs.changed == 'true' && steps.check.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_DIR: ${{ runner.temp }}/rumble-pr
+        run: |
+          set -euo pipefail
+          VIDEO_ID="$(tr -d '[:space:]' < "$PR_DIR/video-id.txt")"
+          if [[ ! "$VIDEO_ID" =~ ^v[0-9A-Za-z]+$ ]]; then
+            echo "::error::Refusing unexpected video id"
+            exit 1
+          fi
+          if [[ ! "${GITHUB_RUN_ID}" =~ ^[0-9]+$ ]]; then
+            echo "::error::Refusing unexpected run id"
+            exit 1
+          fi
+          BRANCH="rumble-vod/${VIDEO_ID}-${GITHUB_RUN_ID}"
+          if [[ "$BRANCH" == "main" || "$BRANCH" == "refs/heads/main" ]]; then
+            echo "::error::Refusing to push main"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add -- index.html
+          staged="$(git diff --cached --name-only)"
+          if [[ "$staged" != "index.html" ]]; then
+            echo "::error::Refusing to commit unexpected files: ${staged}"
+            exit 1
+          fi
+          git commit -F "$PR_DIR/commit-message.txt"
+          git push origin "HEAD:refs/heads/${BRANCH}"
+          COMPARE_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/compare/main...${BRANCH}?expand=1"
+          printf '%s\n' "$COMPARE_URL" > "$PR_DIR/compare-url.txt"
+          echo "compare_url=${COMPARE_URL}" >> "$GITHUB_OUTPUT"
+          echo "branch=${BRANCH}" >> "$GITHUB_OUTPUT"
+          TITLE="$(tr -d '\r\n' < "$PR_DIR/pr-title.txt")"
+          set +e
+          gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --base main \
+            --head "$BRANCH" \
+            --title="$TITLE" \
+            --body-file "$PR_DIR/pr-body.md" \
+            > "$PR_DIR/pr-url.txt" \
+            2> "$PR_DIR/pr-error.txt"
+          status=$?
+          set -e
+          if [[ "$status" -ne 0 ]]; then
+            echo "pr_ok=false" >> "$GITHUB_OUTPUT"
+            echo "gh pr create failed:"
+            cat "$PR_DIR/pr-error.txt"
+            echo "Compare URL: ${COMPARE_URL}"
+            if grep -Eqi "not permitted to create|create or approve pull requests|pull request creation failed|Resource not accessible" "$PR_DIR/pr-error.txt"; then
+              echo "::error title=GitHub Actions cannot create pull requests::Enable 'Allow GitHub Actions to create and approve pull requests' (Settings → Actions → General → Workflow permissions). Compare URL: ${COMPARE_URL}"
+            else
+              echo "::error title=Could not create pull request::gh pr create failed. Compare URL: ${COMPARE_URL}"
+            fi
+            exit 1
+          fi
+          PR_URL="$(tr -d '[:space:]' < "$PR_DIR/pr-url.txt")"
+          echo "pr_url=${PR_URL}" >> "$GITHUB_OUTPUT"
+          echo "pr_ok=true" >> "$GITHUB_OUTPUT"
+          echo "Opened ${PR_URL}"
+
+      - name: Write job summary
+        if: always()
+        env:
+          RESULT_PATH: ${{ runner.temp }}/rumble-vod-result.json
+          PR_DIR: ${{ runner.temp }}/rumble-pr
+          PR_URL: ${{ steps.pr.outputs.pr_url }}
+          COMPARE_URL: ${{ steps.pr.outputs.compare_url }}
+          PR_OUTCOME: ${{ steps.pr.outcome }}
+          CHECK_OUTCOME: ${{ steps.check.outcome }}
+        run: |
+          set -euo pipefail
+          python3 -m scripts.rumble_vods.report \
+            --result "$RESULT_PATH" \
+            --output "$GITHUB_STEP_SUMMARY" \
+            --pr-url "${PR_URL:-}" \
+            --compare-url "${COMPARE_URL:-}" \
+            --pr-outcome "${PR_OUTCOME:-}" \
+            --check-outcome "${CHECK_OUTCOME:-}" \
+            --pr-error-file "$PR_DIR/pr-error.txt" \
+            --compare-file "$PR_DIR/compare-url.txt"

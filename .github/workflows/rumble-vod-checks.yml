@@ -1,0 +1,30 @@
+# Re-runs the manual VOD unit tests and the featured-block site check.
+# There is no production build for this static site.
+
+name: Rumble VOD checks
+
+on:
+  pull_request:
+    paths:
+      - "index.html"
+      - "scripts/**"
+      - ".github/workflows/add-rumble-vod.yml"
+      - ".github/workflows/rumble-vod-checks.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: test
+        run: bash scripts/rumble_vods/run_checks.sh
