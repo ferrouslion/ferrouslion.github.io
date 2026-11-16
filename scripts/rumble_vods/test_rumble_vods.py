@@ -95,6 +95,12 @@ class WatchUrlTests(unittest.TestCase):
         self.assertEqual(video_id, "vAbC12")
         self.assertTrue(url.startswith("https://rumble.com/"))
 
+    def test_slug_may_contain_periods(self) -> None:
+        raw = "https://rumble.com/v7i9ee4-lil-uzi-verts-stronghold-wont-loot-itself.-fortnite-friday.html"
+        video_id, url = normalize_watch_url(raw)
+        self.assertEqual(video_id, "v7i9ee4")
+        self.assertEqual(url, raw)
+
     def test_rejects_bad_urls(self) -> None:
         samples = [
             "http://rumble.com/v1-slug.html",

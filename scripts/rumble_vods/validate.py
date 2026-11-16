@@ -36,7 +36,7 @@ _NAIVE_RE = re.compile(
     re.ASCII,
 )
 _WATCH_PATH_RE = re.compile(
-    r"^/(?P<id>v[0-9A-Za-z]+)-(?P<slug>[0-9A-Za-z]+(?:-[0-9A-Za-z]+)*)\.html$",
+    r"^/(?P<id>v[0-9A-Za-z]+)-(?P<slug>[0-9A-Za-z.]+(?:-[0-9A-Za-z.]+)*)\.html$",
     re.ASCII,
 )
 _DURATION_TEXT_RE = re.compile(r"^(?:0|[1-9][0-9]*)$", re.ASCII)
