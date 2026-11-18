@@ -1,0 +1,405 @@
+{
+  "$comment": "Status: Proposal / pending review. Design artifact for ferrouslion.com Phase 1. Not deployed. The $id value is an identifier and was not published to the live site.",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ferrouslion.com/schemas/music-catalog/v1",
+  "title": "FerrousLion music catalog",
+  "description": "Version 1 of the music catalog. One file of releases. A release is either a Suno link-out or a stored original MP3. This schema has no player URL and no WAV master.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "example", "updatedAt", "releases"],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "documentStatus": {
+      "const": "Status: Proposal / pending review",
+      "description": "Required on example files. Forbidden when example is false."
+    },
+    "example": {
+      "type": "boolean",
+      "description": "True only for a labeled example. A future production catalog sets this to false."
+    },
+    "exampleNotice": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 600,
+      "description": "Required on example files. States what is real and what is placeholder."
+    },
+    "updatedAt": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "releases": {
+      "type": "array",
+      "maxItems": 100,
+      "items": {
+        "$ref": "#/$defs/release"
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "example": { "const": true } },
+        "required": ["example"]
+      },
+      "then": {
+        "required": ["documentStatus", "exampleNotice"]
+      }
+    },
+    {
+      "if": {
+        "properties": { "example": { "const": false } },
+        "required": ["example"]
+      },
+      "then": {
+        "properties": {
+          "documentStatus": false,
+          "exampleNotice": false,
+          "releases": {
+            "items": {
+              "properties": {
+                "tracks": {
+                  "items": {
+                    "properties": {
+                      "example": { "const": false },
+                      "title": { "not": { "pattern": "EXAMPLE" } }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "slug": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "plainText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 300,
+      "pattern": "^[^\\x00-\\x1f\\x7f]+$"
+    },
+    "timestamp": {
+      "type": "string",
+      "minLength": 20,
+      "maxLength": 40,
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})$",
+      "description": "ISO 8601 with seconds and a timezone. The pattern checks shape. A real calendar date is a Python check."
+    },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type",
+        "title",
+        "releaseKind",
+        "status",
+        "presentation",
+        "summary",
+        "publishedAt",
+        "externalUrl",
+        "artwork",
+        "tracks"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/slug" },
+        "type": { "const": "music-release" },
+        "title": { "$ref": "#/$defs/plainText" },
+        "releaseKind": { "enum": ["album", "single"] },
+        "status": { "enum": ["draft", "published"] },
+        "presentation": { "enum": ["link-out", "stored-only"] },
+        "summary": {
+          "type": "string",
+          "maxLength": 500,
+          "pattern": "^[^\\x00-\\x1f\\x7f]*$"
+        },
+        "publishedAt": {
+          "oneOf": [
+            { "$ref": "#/$defs/timestamp" },
+            { "type": "null" }
+          ]
+        },
+        "externalUrl": {
+          "oneOf": [
+            {
+              "type": "string",
+              "maxLength": 200,
+              "pattern": "^https://(www\\.)?suno\\.com/s/[A-Za-z0-9]+$"
+            },
+            { "type": "null" }
+          ]
+        },
+        "sunoShareId": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9]+$"
+        },
+        "artwork": { "$ref": "#/$defs/artwork" },
+        "tracks": {
+          "type": "array",
+          "maxItems": 100,
+          "items": { "$ref": "#/$defs/track" }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "presentation": { "const": "link-out" } },
+            "required": ["presentation"]
+          },
+          "then": {
+            "properties": {
+              "externalUrl": {
+                "type": "string",
+                "pattern": "^https://(www\\.)?suno\\.com/s/[A-Za-z0-9]+$"
+              },
+              "tracks": {
+                "items": {
+                  "not": { "required": ["playback"] }
+                }
+              }
+            },
+            "required": ["sunoShareId"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "presentation": { "const": "stored-only" } },
+            "required": ["presentation"]
+          },
+          "then": {
+            "properties": {
+              "tracks": {
+                "minItems": 1,
+                "items": { "required": ["playback"] }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "releaseKind": { "const": "single" } },
+            "required": ["releaseKind"]
+          },
+          "then": {
+            "properties": {
+              "tracks": { "maxItems": 1 }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": { "const": "published" },
+              "presentation": { "const": "stored-only" }
+            },
+            "required": ["status", "presentation"]
+          },
+          "then": {
+            "properties": {
+              "tracks": {
+                "minItems": 1,
+                "items": {
+                  "required": ["playback"],
+                  "properties": {
+                    "playback": {
+                      "required": ["backup"],
+                      "properties": {
+                        "backup": {
+                          "required": ["copied", "locationId"],
+                          "properties": {
+                            "copied": { "const": true },
+                            "locationId": { "$ref": "#/$defs/slug" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "artwork": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "alt"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "maxLength": 160,
+          "pattern": "^\\./music/[a-z0-9]+(?:-[a-z0-9]+)*\\.(?:jpg|jpeg|png|webp)$"
+        },
+        "alt": { "$ref": "#/$defs/plainText" }
+      }
+    },
+    "track": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "trackNumber", "durationSeconds", "example"],
+      "properties": {
+        "id": { "$ref": "#/$defs/slug" },
+        "title": { "$ref": "#/$defs/plainText" },
+        "trackNumber": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 999
+        },
+        "durationSeconds": {
+          "description": "Whole seconds, or null when the file has not been measured. The 14400 ceiling is a proposed sanity cap (4 hours), not a measured length.",
+          "oneOf": [
+            { "type": "integer", "minimum": 1, "maximum": 14400 },
+            { "type": "null" }
+          ]
+        },
+        "example": {
+          "type": "boolean"
+        },
+        "playback": { "$ref": "#/$defs/playback" }
+      }
+    },
+    "playback": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The MP3 FerrousLion supplied. This is the original, not a transcode. The object key is not a public URL.",
+      "required": [
+        "role",
+        "suppliedAs",
+        "container",
+        "contentType",
+        "originalFilename",
+        "key",
+        "bytes",
+        "sha256",
+        "bitrateKbps",
+        "bitrateMode",
+        "sampleRateHz",
+        "channels",
+        "backup"
+      ],
+      "properties": {
+        "role": { "const": "original" },
+        "suppliedAs": { "const": "mp3" },
+        "container": { "const": "mp3" },
+        "contentType": { "const": "audio/mpeg" },
+        "originalFilename": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 255,
+          "pattern": "^[^\\\\/\\x00-\\x1f\\x7f]+\\.[Mm][Pp]3$"
+        },
+        "key": {
+          "type": "string",
+          "minLength": 20,
+          "maxLength": 220,
+          "pattern": "^playback/[a-z0-9]+(?:-[a-z0-9]+)*/[a-z0-9]+(?:-[a-z0-9]+)*/[0-9a-f]{64}\\.mp3$"
+        },
+        "bytes": {
+          "description": "Byte length of the file. The maximum is a proposed sanity cap of 100 MiB (104857600), not a measured size.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 104857600
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "bitrateKbps": {
+          "description": "Null until read from the file. The maximum of 640 is a proposed sanity cap.",
+          "oneOf": [
+            { "type": "integer", "minimum": 1, "maximum": 640 },
+            { "type": "null" }
+          ]
+        },
+        "bitrateMode": {
+          "enum": ["constant", "variable", "unknown"]
+        },
+        "sampleRateHz": {
+          "description": "Null until read from the file. The maximum of 384000 is a proposed sanity cap.",
+          "oneOf": [
+            { "type": "integer", "minimum": 1, "maximum": 384000 },
+            { "type": "null" }
+          ]
+        },
+        "channels": {
+          "oneOf": [
+            { "type": "integer", "minimum": 1, "maximum": 2 },
+            { "type": "null" }
+          ]
+        },
+        "backup": { "$ref": "#/$defs/backup" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "bitrateKbps": { "type": "null" } },
+            "required": ["bitrateKbps"]
+          },
+          "then": {
+            "properties": { "bitrateMode": { "const": "unknown" } }
+          }
+        },
+        {
+          "if": {
+            "properties": { "bitrateKbps": { "type": "integer" } },
+            "required": ["bitrateKbps"]
+          },
+          "then": {
+            "properties": { "bitrateMode": { "enum": ["constant", "variable"] } }
+          }
+        }
+      ]
+    },
+    "backup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["copied", "locationId"],
+      "properties": {
+        "copied": { "type": "boolean" },
+        "locationId": {
+          "description": "A short label once FerrousLion names the backup. Not a path, not a URL, not a credential. Null until copied is true.",
+          "oneOf": [
+            { "$ref": "#/$defs/slug" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "copied": { "const": true } },
+            "required": ["copied"]
+          },
+          "then": {
+            "properties": {
+              "locationId": { "$ref": "#/$defs/slug" }
+            },
+            "required": ["locationId"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "copied": { "const": false } },
+            "required": ["copied"]
+          },
+          "then": {
+            "properties": {
+              "locationId": { "type": "null" }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
