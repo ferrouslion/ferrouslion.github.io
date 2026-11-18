@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "example": false,
+  "updatedAt": "2026-11-18T16:22:00Z",
+  "releases": [
+    {
+      "id": "forged-not-born",
+      "type": "music-release",
+      "title": "Forged, Not Born",
+      "releaseKind": "album",
+      "status": "published",
+      "presentation": "link-out",
+      "summary": "",
+      "publishedAt": null,
+      "externalUrl": "https://suno.com/s/UaKR3kLXhf8arBJf",
+      "sunoShareId": "UaKR3kLXhf8arBJf",
+      "artwork": {
+        "path": "./music/forged-not-born.jpg",
+        "alt": "Forged, Not Born album cover by FerrousLion"
+      },
+      "tracks": []
+    }
+  ]
+}
