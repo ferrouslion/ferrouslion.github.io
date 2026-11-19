@@ -353,10 +353,11 @@
 
     <section class="section" id="music" aria-labelledby="music-title">
       <div class="wrap">
-        <!-- On-page player. The list below is the no-JS fallback.
-             When script runs, it fetches music/catalog.json and rebuilds the
-             tracks from that file. Audio URLs live in #suno-music-data because
-             the catalog schema has no public URL field. -->
+        <!-- One player, one audio element. Titles and order come from
+             music/catalog.json. Audio URLs live in #suno-music-data because
+             the catalog schema has no public URL field. #music-fallback is a
+             no-JS list of plain MP3 links. Native controls stay on the audio
+             element unless the script below runs. -->
         <script type="application/json" id="suno-music-data">
 {
   "updatedAt": "2026-11-19T09:20:00Z",
@@ -389,43 +390,77 @@
             <img src="./music/forged-not-born.jpg" width="600" height="600" alt="Forged, Not Born album cover by FerrousLion" decoding="async">
           </div>
           <div class="music-player-body">
-            <div class="video-meta">
-              <h3 id="music-release-title">Forged, Not Born</h3>
-              <p class="music-type">Album</p>
+            <p class="music-now-album" id="music-release-title">Forged, Not Born</p>
+            <p class="music-now-title" id="music-now-title" aria-live="polite">From the First Drop</p>
+            <p class="music-now-meta">
+              <span id="music-now-index">1 of 3</span>
+              <span id="music-now-time">3:40</span>
+            </p>
+            <div class="music-transport" role="group" aria-label="Playback">
+              <button type="button" class="music-btn" id="music-prev" aria-label="Previous track">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M6 5h2.2v14H6V5zm12.8 14L9.2 12l9.6-7v14z"/></svg>
+              </button>
+              <button type="button" class="music-btn music-btn-main" id="music-play" aria-label="Play" aria-pressed="false">
+                <svg class="icon-play" viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M8 5.14v13.72L19.5 12 8 5.14z"/></svg>
+                <svg class="icon-pause" viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M6 4.5h4.2v15H6v-15zm7.8 0H18v15h-4.2v-15z"/></svg>
+              </button>
+              <button type="button" class="music-btn" id="music-next" aria-label="Next track">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M15.8 5H18v14h-2.2V5zM5.2 5l9.6 7-9.6 7V5z"/></svg>
+              </button>
             </div>
-            <ol class="music-tracks" id="music-tracks">
-              <li>
-                <div class="music-track-head">
-                  <span class="music-track-num">1</span>
-                  <span class="music-track-title">From the First Drop</span>
-                  <span class="music-track-time">3:40</span>
-                </div>
-                <audio controls preload="none" src="https://media.ferrouslion.com/playback/forged-not-born/from-the-first-drop/6d61a341fdd869c92d87c1517df8c01268687366d9117ba77d4478370fbb5b7a.mp3" aria-label="Track 1, From the First Drop, 3:40"></audio>
-              </li>
-              <li>
-                <div class="music-track-head">
-                  <span class="music-track-num">2</span>
-                  <span class="music-track-title">Five Stars Flashing</span>
-                  <span class="music-track-time">3:06</span>
-                </div>
-                <audio controls preload="none" src="https://media.ferrouslion.com/playback/forged-not-born/five-stars-flashing/544b3c11dda7b535b6226fd31d5b06ba04a1e27fbc36c1cb73637fcf24d3135f.mp3" aria-label="Track 2, Five Stars Flashing, 3:06"></audio>
-              </li>
-              <li>
-                <div class="music-track-head">
-                  <span class="music-track-num">3</span>
-                  <span class="music-track-title">Forged, Not Born</span>
-                  <span class="music-track-time">3:02</span>
-                </div>
-                <audio controls preload="none" src="https://media.ferrouslion.com/playback/forged-not-born/forged-not-born/4e745292733c971e0f51285887f55b98b3b395522c60388c8f8569d2b3f7a32c.mp3" aria-label="Track 3, Forged, Not Born, 3:02"></audio>
-              </li>
-            </ol>
+            <audio id="music-audio" controls preload="none" src="https://media.ferrouslion.com/playback/forged-not-born/from-the-first-drop/6d61a341fdd869c92d87c1517df8c01268687366d9117ba77d4478370fbb5b7a.mp3" aria-label="From the First Drop"></audio>
           </div>
+        </div>
+        <div class="music-fallback" id="music-fallback">
+          <p>Open a track:</p>
+          <ol>
+            <li>
+              <a href="https://media.ferrouslion.com/playback/forged-not-born/from-the-first-drop/6d61a341fdd869c92d87c1517df8c01268687366d9117ba77d4478370fbb5b7a.mp3">From the First Drop</a>
+              <span class="music-track-time">3:40</span>
+            </li>
+            <li>
+              <a href="https://media.ferrouslion.com/playback/forged-not-born/five-stars-flashing/544b3c11dda7b535b6226fd31d5b06ba04a1e27fbc36c1cb73637fcf24d3135f.mp3">Five Stars Flashing</a>
+              <span class="music-track-time">3:06</span>
+            </li>
+            <li>
+              <a href="https://media.ferrouslion.com/playback/forged-not-born/forged-not-born/4e745292733c971e0f51285887f55b98b3b395522c60388c8f8569d2b3f7a32c.mp3">Forged, Not Born</a>
+              <span class="music-track-time">3:02</span>
+            </li>
+          </ol>
         </div>
         <script>
           (function () {
-            var list = document.getElementById("music-tracks");
+            var player = document.getElementById("music-release");
+            var audio = document.getElementById("music-audio");
             var dataEl = document.getElementById("suno-music-data");
-            if (!list || !dataEl) return;
+            var titleEl = document.getElementById("music-now-title");
+            var albumEl = document.getElementById("music-release-title");
+            var indexEl = document.getElementById("music-now-index");
+            var timeEl = document.getElementById("music-now-time");
+            var prevBtn = document.getElementById("music-prev");
+            var playBtn = document.getElementById("music-play");
+            var nextBtn = document.getElementById("music-next");
+            var fallback = document.getElementById("music-fallback");
+            if (!player || !audio || !titleEl || !prevBtn || !playBtn || !nextBtn) return;
+
+            var extras = player.querySelectorAll("audio");
+            for (var extraIndex = 0; extraIndex < extras.length; extraIndex++) {
+              if (extras[extraIndex] !== audio) extras[extraIndex].remove();
+            }
+
+            audio.autoplay = false;
+            audio.preload = "none";
+            audio.removeAttribute("controls");
+            audio.controls = false;
+            audio.setAttribute("aria-hidden", "true");
+            player.classList.add("is-ready");
+            if (fallback) fallback.hidden = true;
+
+            var tracks = [];
+            var index = 0;
+            var wantPlay = false;
+            var playToken = 0;
+            var ignorePause = false;
 
             function plain(value) {
               if (typeof value !== "string") return "";
@@ -438,6 +473,14 @@
               if (typeof seconds !== "number" || !Number.isInteger(seconds) || seconds < 1 || seconds > 14400) return "";
               var minutes = Math.floor(seconds / 60);
               var remain = seconds % 60;
+              return minutes + ":" + (remain < 10 ? "0" : "") + remain;
+            }
+
+            function formatMediaTime(seconds) {
+              if (typeof seconds !== "number" || !isFinite(seconds) || seconds < 0) return "0:00";
+              var whole = Math.floor(seconds);
+              var minutes = Math.floor(whole / 60);
+              var remain = whole % 60;
               return minutes + ":" + (remain < 10 ? "0" : "") + remain;
             }
 
@@ -465,39 +508,208 @@
               return map;
             }
 
-            function trackRow(track, urls) {
+            function trackRecord(track, urls) {
               if (!track || track.example === true) return null;
               var id = typeof track.id === "string" ? track.id : "";
               var title = plain(track.title);
               var number = track.trackNumber;
               var src = urls[id];
               if (!id || !title || !src || typeof number !== "number" || !Number.isInteger(number) || number < 1) return null;
-              var time = clock(track.durationSeconds);
-              var li = document.createElement("li");
-              var head = document.createElement("div");
-              head.className = "music-track-head";
-              var num = document.createElement("span");
-              num.className = "music-track-num";
-              num.textContent = String(number);
-              var name = document.createElement("span");
-              name.className = "music-track-title";
-              name.textContent = title;
-              head.append(num, name);
-              if (time) {
-                var stamp = document.createElement("span");
-                stamp.className = "music-track-time";
-                stamp.textContent = time;
-                head.append(stamp);
-              }
-              var audio = document.createElement("audio");
-              audio.controls = true;
-              audio.preload = "none";
-              audio.src = src;
-              audio.setAttribute("aria-label", "Track " + number + ", " + title + (time ? ", " + time : ""));
-              li.append(head, audio);
-              return li;
+              return { title: title, number: number, src: src, time: clock(track.durationSeconds) };
             }
 
+            function setPressed(playing) {
+              playBtn.setAttribute("aria-pressed", playing ? "true" : "false");
+              playBtn.setAttribute("aria-label", playing ? "Pause" : "Play");
+            }
+
+            function updateTime() {
+              if (!timeEl || !tracks[index]) return;
+              var total = tracks[index].time;
+              var shown = total || "";
+              if (total && audio.currentTime > 0.2) shown = formatMediaTime(audio.currentTime) + " / " + total;
+              if (timeEl.textContent !== shown) timeEl.textContent = shown;
+            }
+
+            function renderMeta() {
+              var track = tracks[index];
+              var enabled = tracks.length > 0;
+              prevBtn.disabled = !enabled;
+              playBtn.disabled = !enabled;
+              nextBtn.disabled = !enabled;
+              if (!track) return;
+              if (titleEl.textContent !== track.title) titleEl.textContent = track.title;
+              if (indexEl) {
+                var label = (index + 1) + " of " + tracks.length;
+                if (indexEl.textContent !== label) indexEl.textContent = label;
+              }
+              updateTime();
+            }
+
+            function stopPlayback() {
+              wantPlay = false;
+              playToken += 1;
+              audio.pause();
+              setPressed(false);
+            }
+
+            function playCurrent() {
+              wantPlay = true;
+              setPressed(true);
+              var token = playToken + 1;
+              playToken = token;
+              var pending;
+              try {
+                pending = audio.play();
+              } catch (err) {
+                if (token !== playToken) return;
+                wantPlay = false;
+                setPressed(false);
+                return;
+              }
+              if (pending && typeof pending.then === "function") {
+                pending.then(function () {
+                  if (token !== playToken || !wantPlay) return;
+                  setPressed(true);
+                }).catch(function () {
+                  if (token !== playToken) return;
+                  wantPlay = false;
+                  setPressed(false);
+                });
+              }
+            }
+
+            function assignSrc(src) {
+              if (audio.src === src) return;
+              ignorePause = true;
+              audio.src = src;
+              ignorePause = false;
+            }
+
+            function loadTrack(nextIndex, shouldPlay) {
+              var track = tracks[nextIndex];
+              if (!track) return;
+              index = nextIndex;
+              if (audio.src === track.src) {
+                try { audio.currentTime = 0; } catch (err) {}
+              } else {
+                assignSrc(track.src);
+              }
+              if (shouldPlay) playCurrent();
+              else stopPlayback();
+              renderMeta();
+            }
+
+            function onToggle() {
+              if (!tracks.length) return;
+              if (wantPlay) {
+                stopPlayback();
+                return;
+              }
+              if (audio.src !== tracks[index].src) assignSrc(tracks[index].src);
+              if (audio.ended) {
+                try { audio.currentTime = 0; } catch (err) {}
+              }
+              playCurrent();
+            }
+
+            function onPrev() {
+              if (!tracks.length) return;
+              if (index === 0 || audio.currentTime > 3) {
+                try { audio.currentTime = 0; } catch (err) {}
+                updateTime();
+                return;
+              }
+              loadTrack(index - 1, wantPlay);
+            }
+
+            function onNext() {
+              if (!tracks.length) return;
+              // Last track stops. Reset to track 1 and stay paused.
+              if (index >= tracks.length - 1) {
+                loadTrack(0, false);
+                return;
+              }
+              loadTrack(index + 1, wantPlay);
+            }
+
+            function onEnded() {
+              if (index >= tracks.length - 1) {
+                wantPlay = false;
+                setPressed(false);
+                updateTime();
+                return;
+              }
+              loadTrack(index + 1, true);
+            }
+
+            function tracksFromFallback() {
+              if (!fallback) return [];
+              var links = fallback.querySelectorAll("a[href]");
+              var rows = [];
+              for (var i = 0; i < links.length; i++) {
+                var src = audioURL(links[i].getAttribute("href"));
+                var title = plain(links[i].textContent);
+                if (!src || !title) return [];
+                var stamp = links[i].parentElement ? links[i].parentElement.querySelector(".music-track-time") : null;
+                var time = stamp ? plain(stamp.textContent) : "";
+                rows.push({ title: title, number: i + 1, src: src, time: time });
+              }
+              return rows;
+            }
+
+            function applyCatalog(nextTracks, releaseTitle) {
+              if (!nextTracks.length) return;
+              var current = audio.src;
+              var match = -1;
+              for (var i = 0; i < nextTracks.length; i++) {
+                if (nextTracks[i].src === current) {
+                  match = i;
+                  break;
+                }
+              }
+              if (wantPlay && match < 0) return;
+              if (releaseTitle && albumEl && albumEl.textContent !== releaseTitle) albumEl.textContent = releaseTitle;
+              if (match >= 0) {
+                tracks = nextTracks;
+                index = match;
+                renderMeta();
+                return;
+              }
+              tracks = nextTracks;
+              index = 0;
+              assignSrc(tracks[0].src);
+              stopPlayback();
+              renderMeta();
+            }
+
+            prevBtn.addEventListener("click", onPrev);
+            playBtn.addEventListener("click", onToggle);
+            nextBtn.addEventListener("click", onNext);
+            audio.addEventListener("ended", onEnded);
+            audio.addEventListener("timeupdate", updateTime);
+            audio.addEventListener("pause", function () {
+              if (ignorePause || wantPlay) return;
+              setPressed(false);
+            });
+            audio.addEventListener("play", function () {
+              if (!wantPlay) return;
+              setPressed(true);
+            });
+
+            tracks = tracksFromFallback();
+            if (!tracks.length) {
+              var seeded = audioURL(audio.getAttribute("src"));
+              var seededTitle = plain(titleEl.textContent);
+              if (seeded && seededTitle) {
+                tracks = [{ title: seededTitle, number: 1, src: seeded, time: timeEl ? plain(timeEl.textContent) : "" }];
+              }
+            }
+            if (tracks.length && audio.src !== tracks[0].src) assignSrc(tracks[0].src);
+            renderMeta();
+            setPressed(false);
+
+            if (!dataEl) return;
             var page;
             try {
               page = JSON.parse(dataEl.textContent);
@@ -521,14 +733,10 @@
                 if (matches.length !== 1 || matches[0].tracks.length === 0) return;
                 var release = matches[0];
                 var rows = release.tracks.map(function (track) {
-                  return trackRow(track, urls);
+                  return trackRecord(track, urls);
                 });
                 if (rows.some(function (row) { return !row; }) || rows.length !== release.tracks.length) return;
-                if (Array.prototype.some.call(list.querySelectorAll("audio"), function (audio) { return !audio.paused; })) return;
-                var title = plain(release.title);
-                var heading = document.getElementById("music-release-title");
-                if (title && heading) heading.textContent = title;
-                list.replaceChildren.apply(list, rows);
+                applyCatalog(rows, plain(release.title));
               })
               .catch(function () {});
           })();
