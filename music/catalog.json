@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "example": false,
-  "updatedAt": "2026-11-18T16:22:00Z",
+  "updatedAt": "2026-11-19T09:20:00Z",
   "releases": [
     {
       "id": "forged-not-born",
@@ -18,7 +18,29 @@
         "path": "./music/forged-not-born.jpg",
         "alt": "Forged, Not Born album cover by FerrousLion"
       },
-      "tracks": []
+      "tracks": [
+        {
+          "id": "from-the-first-drop",
+          "title": "From the First Drop",
+          "trackNumber": 1,
+          "durationSeconds": 220,
+          "example": false
+        },
+        {
+          "id": "five-stars-flashing",
+          "title": "Five Stars Flashing",
+          "trackNumber": 2,
+          "durationSeconds": 186,
+          "example": false
+        },
+        {
+          "id": "forged-not-born",
+          "title": "Forged, Not Born",
+          "trackNumber": 3,
+          "durationSeconds": 182,
+          "example": false
+        }
+      ]
     }
   ]
 }
