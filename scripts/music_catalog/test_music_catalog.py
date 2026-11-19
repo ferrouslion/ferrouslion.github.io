@@ -1,8 +1,9 @@
 """Stdlib tests for the music catalog check. No network.
 
 Fixtures are built in this module. The example document is the Phase 1
-design example (example: true). The production shape is the link-out for
-Forged, Not Born with an empty track list.
+design example (example: true). The production catalog is the link-out for
+Forged, Not Born. Fixture helpers still build that link-out with an empty
+track list.
 """
 
 from __future__ import annotations
@@ -702,7 +703,7 @@ class RepositoryTests(unittest.TestCase):
             {
                 "schemaVersion": 1,
                 "example": False,
-                "updatedAt": "2026-11-18T16:22:00Z",
+                "updatedAt": "2026-11-19T09:20:00Z",
                 "releases": [
                     {
                         "id": "forged-not-born",
@@ -719,7 +720,29 @@ class RepositoryTests(unittest.TestCase):
                             "path": "./music/forged-not-born.jpg",
                             "alt": "Forged, Not Born album cover by FerrousLion",
                         },
-                        "tracks": [],
+                        "tracks": [
+                            {
+                                "id": "from-the-first-drop",
+                                "title": "From the First Drop",
+                                "trackNumber": 1,
+                                "durationSeconds": 220,
+                                "example": False,
+                            },
+                            {
+                                "id": "five-stars-flashing",
+                                "title": "Five Stars Flashing",
+                                "trackNumber": 2,
+                                "durationSeconds": 186,
+                                "example": False,
+                            },
+                            {
+                                "id": "forged-not-born",
+                                "title": "Forged, Not Born",
+                                "trackNumber": 3,
+                                "durationSeconds": 182,
+                                "example": False,
+                            },
+                        ],
                     }
                 ],
             },
