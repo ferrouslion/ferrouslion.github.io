@@ -353,20 +353,26 @@
 
     <section class="section" id="music" aria-labelledby="music-title">
       <div class="wrap">
-        <!-- Music on Suno. Edit this JSON only; see docs/suno-music.md.
-             The page does not call Suno. Cover art is a file in this repo. -->
+        <!-- On-page player. The list below is the no-JS fallback.
+             When script runs, it fetches music/catalog.json and rebuilds the
+             tracks from that file. Audio URLs live in #suno-music-data because
+             the catalog schema has no public URL field. -->
         <script type="application/json" id="suno-music-data">
 {
-  "profileUrl": null,
-  "updatedAt": "2026-11-13T02:20:00Z",
-  "items": [
+  "updatedAt": "2026-11-19T09:20:00Z",
+  "releaseId": "forged-not-born",
+  "tracks": [
     {
-      "id": "UaKR3kLXhf8arBJf",
-      "title": "Forged, Not Born",
-      "type": "album",
-      "url": "https://suno.com/s/UaKR3kLXhf8arBJf",
-      "artUrl": "./music/forged-not-born.jpg",
-      "alt": "Forged, Not Born album cover by FerrousLion"
+      "id": "from-the-first-drop",
+      "url": "https://media.ferrouslion.com/playback/forged-not-born/from-the-first-drop/6d61a341fdd869c92d87c1517df8c01268687366d9117ba77d4478370fbb5b7a.mp3"
+    },
+    {
+      "id": "five-stars-flashing",
+      "url": "https://media.ferrouslion.com/playback/forged-not-born/five-stars-flashing/544b3c11dda7b535b6226fd31d5b06ba04a1e27fbc36c1cb73637fcf24d3135f.mp3"
+    },
+    {
+      "id": "forged-not-born",
+      "url": "https://media.ferrouslion.com/playback/forged-not-born/forged-not-born/4e745292733c971e0f51285887f55b98b3b395522c60388c8f8569d2b3f7a32c.mp3"
     }
   ]
 }
@@ -375,11 +381,158 @@
           <div>
             <p class="kicker">Music</p>
             <h2 id="music-title">Albums and songs</h2>
-            <p class="lead">FerrousLion on Suno. Open a card to listen on the official share page.</p>
+            <p class="lead">Play Forged, Not Born here. Each track stays on this page.</p>
           </div>
-          <div class="featured-actions" id="suno-music-actions"></div>
         </div>
-        <ul class="video-grid music-list" id="suno-music"></ul>
+        <div class="card hairline music-card music-player" id="music-release">
+          <div class="music-art">
+            <img src="./music/forged-not-born.jpg" width="600" height="600" alt="Forged, Not Born album cover by FerrousLion" decoding="async">
+          </div>
+          <div class="music-player-body">
+            <div class="video-meta">
+              <h3 id="music-release-title">Forged, Not Born</h3>
+              <p class="music-type">Album</p>
+            </div>
+            <ol class="music-tracks" id="music-tracks">
+              <li>
+                <div class="music-track-head">
+                  <span class="music-track-num">1</span>
+                  <span class="music-track-title">From the First Drop</span>
+                  <span class="music-track-time">3:40</span>
+                </div>
+                <audio controls preload="none" src="https://media.ferrouslion.com/playback/forged-not-born/from-the-first-drop/6d61a341fdd869c92d87c1517df8c01268687366d9117ba77d4478370fbb5b7a.mp3" aria-label="Track 1, From the First Drop, 3:40"></audio>
+              </li>
+              <li>
+                <div class="music-track-head">
+                  <span class="music-track-num">2</span>
+                  <span class="music-track-title">Five Stars Flashing</span>
+                  <span class="music-track-time">3:06</span>
+                </div>
+                <audio controls preload="none" src="https://media.ferrouslion.com/playback/forged-not-born/five-stars-flashing/544b3c11dda7b535b6226fd31d5b06ba04a1e27fbc36c1cb73637fcf24d3135f.mp3" aria-label="Track 2, Five Stars Flashing, 3:06"></audio>
+              </li>
+              <li>
+                <div class="music-track-head">
+                  <span class="music-track-num">3</span>
+                  <span class="music-track-title">Forged, Not Born</span>
+                  <span class="music-track-time">3:02</span>
+                </div>
+                <audio controls preload="none" src="https://media.ferrouslion.com/playback/forged-not-born/forged-not-born/4e745292733c971e0f51285887f55b98b3b395522c60388c8f8569d2b3f7a32c.mp3" aria-label="Track 3, Forged, Not Born, 3:02"></audio>
+              </li>
+            </ol>
+          </div>
+        </div>
+        <script>
+          (function () {
+            var list = document.getElementById("music-tracks");
+            var dataEl = document.getElementById("suno-music-data");
+            if (!list || !dataEl) return;
+
+            function plain(value) {
+              if (typeof value !== "string") return "";
+              var text = value.trim();
+              if (!text || text.length > 300 || /[\u0000-\u001f\u007f]/.test(text)) return "";
+              return text;
+            }
+
+            function clock(seconds) {
+              if (typeof seconds !== "number" || !Number.isInteger(seconds) || seconds < 1 || seconds > 14400) return "";
+              var minutes = Math.floor(seconds / 60);
+              var remain = seconds % 60;
+              return minutes + ":" + (remain < 10 ? "0" : "") + remain;
+            }
+
+            function audioURL(value) {
+              var url;
+              try {
+                url = new URL(value);
+              } catch (err) {
+                return "";
+              }
+              if (url.protocol !== "https:" || url.hostname !== "media.ferrouslion.com") return "";
+              if (!/^\/playback\/[a-z0-9]+(?:-[a-z0-9]+)*\/[a-z0-9]+(?:-[a-z0-9]+)*\/[0-9a-f]{64}\.mp3$/.test(url.pathname)) return "";
+              if (url.search || url.hash) return "";
+              return url.href;
+            }
+
+            function urlMap(data) {
+              var map = {};
+              if (!data || !Array.isArray(data.tracks)) return map;
+              data.tracks.forEach(function (row) {
+                if (!row || typeof row.id !== "string") return;
+                var src = audioURL(row.url);
+                if (src) map[row.id] = src;
+              });
+              return map;
+            }
+
+            function trackRow(track, urls) {
+              if (!track || track.example === true) return null;
+              var id = typeof track.id === "string" ? track.id : "";
+              var title = plain(track.title);
+              var number = track.trackNumber;
+              var src = urls[id];
+              if (!id || !title || !src || typeof number !== "number" || !Number.isInteger(number) || number < 1) return null;
+              var time = clock(track.durationSeconds);
+              var li = document.createElement("li");
+              var head = document.createElement("div");
+              head.className = "music-track-head";
+              var num = document.createElement("span");
+              num.className = "music-track-num";
+              num.textContent = String(number);
+              var name = document.createElement("span");
+              name.className = "music-track-title";
+              name.textContent = title;
+              head.append(num, name);
+              if (time) {
+                var stamp = document.createElement("span");
+                stamp.className = "music-track-time";
+                stamp.textContent = time;
+                head.append(stamp);
+              }
+              var audio = document.createElement("audio");
+              audio.controls = true;
+              audio.preload = "none";
+              audio.src = src;
+              audio.setAttribute("aria-label", "Track " + number + ", " + title + (time ? ", " + time : ""));
+              li.append(head, audio);
+              return li;
+            }
+
+            var page;
+            try {
+              page = JSON.parse(dataEl.textContent);
+            } catch (err) {
+              return;
+            }
+            var releaseId = page && typeof page.releaseId === "string" ? page.releaseId : "";
+            var urls = urlMap(page);
+            if (!releaseId) return;
+
+            fetch("./music/catalog.json", { credentials: "same-origin" })
+              .then(function (response) {
+                if (!response.ok) throw new Error("catalog");
+                return response.json();
+              })
+              .then(function (catalog) {
+                if (!catalog || !Array.isArray(catalog.releases)) return;
+                var matches = catalog.releases.filter(function (row) {
+                  return row && row.id === releaseId && Array.isArray(row.tracks);
+                });
+                if (matches.length !== 1 || matches[0].tracks.length === 0) return;
+                var release = matches[0];
+                var rows = release.tracks.map(function (track) {
+                  return trackRow(track, urls);
+                });
+                if (rows.some(function (row) { return !row; }) || rows.length !== release.tracks.length) return;
+                if (Array.prototype.some.call(list.querySelectorAll("audio"), function (audio) { return !audio.paused; })) return;
+                var title = plain(release.title);
+                var heading = document.getElementById("music-release-title");
+                if (title && heading) heading.textContent = title;
+                list.replaceChildren.apply(list, rows);
+              })
+              .catch(function () {});
+          })();
+        </script>
       </div>
     </section>
 
