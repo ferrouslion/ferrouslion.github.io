@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>FerrousLion | Gaming, Streaming &amp; Community</title>
   <meta name="description" content="Follow FerrousLion for live gaming streams, Fortnite adventures, gameplay videos, sports conversations, and community across Rumble, YouTube, Twitch, and TikTok.">
-  <meta name="theme-color" content="#f6f1e8">
+  <meta name="theme-color" content="#0B0908">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="FerrousLion | Gaming, Streaming &amp; Community">
   <meta name="twitter:description" content="Follow FerrousLion for live gaming streams, Fortnite adventures, gameplay videos, sports conversations, and community across Rumble, YouTube, Twitch, and TikTok.">
@@ -23,7 +23,7 @@
   <link rel="icon" type="image/svg+xml" href="./favicon.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./styles.css">
   <script type="application/ld+json">
   {
@@ -49,127 +49,259 @@
   </script>
 </head>
 <body>
-  <a class="skip" href="#about">Skip to content</a>
+  <a class="skip" href="#meet">Skip to content</a>
 
   <header class="header">
     <div class="wrap header-bar">
-      <a class="brand" href="#top">
-        <img src="./brand/crest-sm.png" alt="">
-        <span>FerrousLion</span>
-      </a>
-      <nav class="nav-desk" aria-label="Primary">
-        <a href="#about">About</a>
-        <a href="#schedule">Schedule</a>
-        <a href="#play">What I Play</a>
-        <a href="#videos">Videos</a>
-        <a href="#music">Music</a>
-        <a href="#connect">Connect</a>
-      </nav>
-      <div class="header-actions">
-        <a class="btn btn-solid btn-sm watch-desk" href="https://pickax.com/ferrouslion" target="_blank" rel="noreferrer">Follow me on ⛏️ Pickax</a>
-        <button class="menu-btn" type="button" aria-expanded="false" aria-label="Open menu">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-        </button>
+      <div class="header-left">
+        <a class="brand" href="#top">FerrousLion</a>
+        <div class="social-icons" role="group" aria-label="Official accounts">
+          <a class="social-icon social-pickax" href="https://pickax.com/ferrouslion" target="_blank" rel="noopener noreferrer" aria-label="FerrousLion on Pickax" title="FerrousLion on Pickax — pickax.com/ferrouslion">
+            <img src="./assets/icons/pickax-logo.svg" width="104" height="32" alt="">
+          </a>
+          <a class="social-icon social-x" href="https://x.com/FerrousLion" target="_blank" rel="noopener noreferrer" aria-label="FerrousLion on X" title="FerrousLion on X — @FerrousLion">
+            <img src="./assets/icons/x-favicon.png" width="32" height="32" alt="">
+          </a>
+        </div>
       </div>
-    </div>
-    <div class="nav-mobile">
-      <nav aria-label="Mobile">
+      <nav class="nav-desk" aria-label="Primary">
+        <a href="#top" aria-current="page">Home</a>
         <a href="#about">About</a>
-        <a href="#schedule">Schedule</a>
-        <a href="#play">What I Play</a>
-        <a href="#videos">Videos</a>
+        <a href="#streams">Streams</a>
         <a href="#music">Music</a>
+        <a href="#forge">The Forge</a>
+        <a href="#gameday">Game Day</a>
+        <a href="#den">The Den</a>
+        <a class="nav-store" href="./store/index.html">Store</a>
         <a href="#connect">Connect</a>
       </nav>
-      <a class="btn btn-solid" href="https://pickax.com/ferrouslion" target="_blank" rel="noreferrer">Follow me on ⛏️ Pickax</a>
+      <button class="menu-btn" type="button" aria-expanded="false" aria-label="Open menu" aria-controls="mobile-nav">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+    <div class="nav-mobile" id="mobile-nav">
+      <div class="wrap">
+        <div class="social-icons" role="group" aria-label="Official accounts in the menu">
+          <a class="social-icon social-pickax" href="https://pickax.com/ferrouslion" target="_blank" rel="noopener noreferrer" aria-label="FerrousLion on Pickax" title="FerrousLion on Pickax — pickax.com/ferrouslion">
+            <img src="./assets/icons/pickax-logo.svg" width="104" height="32" alt="">
+          </a>
+          <a class="social-icon social-x" href="https://x.com/FerrousLion" target="_blank" rel="noopener noreferrer" aria-label="FerrousLion on X" title="FerrousLion on X — @FerrousLion">
+            <img src="./assets/icons/x-favicon.png" width="32" height="32" alt="">
+          </a>
+        </div>
+        <nav aria-label="Mobile">
+          <a href="#top">Home</a>
+          <a href="#about">About</a>
+          <a href="#streams">Streams</a>
+          <a href="#music">Music</a>
+          <a href="#forge">The Forge</a>
+          <a href="#gameday">Game Day</a>
+          <a href="#den">The Den</a>
+          <a href="./store/index.html">Store</a>
+          <a href="#connect">Connect</a>
+        </nav>
+      </div>
     </div>
   </header>
 
-  <main>
-    <section class="hero" id="top">
-      <img class="hero-img" src="./hero.jpg" alt="FerrousLion standing beside the FL Gaming logo">
-      <div class="hero-shade" aria-hidden="true"></div>
-      <div class="wrap hero-copy">
-        <div class="hero-title-row reveal">
-          <img src="./brand/crest-sm.png" alt="">
-          <h1>FerrousLion</h1>
-        </div>
-        <p class="hero-motto reveal d1">FORGED. NOT BORN.</p>
-        <p class="hero-support reveal d2">Gaming, sports, and good company. From Fortnite lobbies and late-night adventures to game-day conversations, this is where I play, stream, and connect with the community.</p>
-        <div class="hero-cta reveal d3">
-          <a class="btn btn-solid" href="https://rumble.com/user/ferrouslion/live" target="_blank" rel="noopener noreferrer">WATCH LIVE<span class="sr-only"> on Rumble</span></a>
-          <a class="btn btn-outline" href="#videos">EXPLORE CONTENT</a>
-        </div>
-      </div>
-      <a class="scroll-hint" href="#about">Scroll</a>
-    </section>
-
-    <section class="section" id="about" aria-labelledby="about-title">
-      <div class="wrap about-grid">
-        <div>
-          <p class="kicker">About me</p>
-          <h2 id="about-title">A lion in the lobby. A fan on game day.</h2>
-          <div class="about-copy">
-            <p>I’m FerrousLion — a gamer, content creator, streamer, and lifelong sports fan.</p>
-            <p>I believe gaming is about more than winning. It’s about the experiences, the unexpected moments, the laughs, and the people you meet along the way.</p>
-            <p>You’ll usually find me dropping into Fortnite, exploring expansive game worlds, taking on a new adventure, or enjoying a little friendly competition. Sometimes my son, FerrousCat, joins me for Fortnite Duos. Other times, it’s just me, the game, and whoever happens to be hanging out in chat.</p>
-            <p>When I’m away from the controller, I’m following Auburn and Miami Dolphins football, along with Manchester United and Inter Miami soccer. I enjoy talking sports just as much as playing games.</p>
-            <p>Whether you’re here for the streams, the games, the sports conversations, or simply the community, you’re welcome.</p>
-            <p class="about-signoff">Forged. Not Born.</p>
-          </div>
-          <dl class="facts">
-            <div class="fact hairline"><dt>My gaming world</dt><dd>PC first. Console when the game calls for it.</dd></div>
-            <div class="fact hairline"><dt>Teams I follow</dt><dd>Auburn<br>Miami Dolphins<br>Manchester United<br>Inter Miami</dd></div>
-            <div class="fact hairline"><dt>Support the channel</dt><dd>Epic creator code ferrouslion</dd></div>
-          </dl>
-          <blockquote class="about-quote">
-            <p>“As a lion in the mountains, confident in his strength, comes upon a herd of cattle feeding in a low-lying meadow... so Achilles came on, his heart full of fierce resolve.”</p>
-            <footer>~ Homer, The Iliad (Book 22)</footer>
-          </blockquote>
-        </div>
-        <div>
-          <div class="about-mobile">
-            <img src="./brand/avatar-sm.png" alt="FerrousLion">
-            <div>
-              <p class="font-display" style="font-family:var(--font-display);font-weight:600;margin:0">FerrousLion</p>
-              <p class="muted" style="margin:.15rem 0 0;font-size:.875rem">@FerrousLion</p>
-            </div>
-          </div>
-          <div class="about-shot">
-            <img src="./about.jpg" alt="Late-night desk with a small iron lion figurine">
-            <div class="about-fade">
-              <img src="./brand/avatar-sm.png" alt="">
-              <div>
-                <p style="font-family:var(--font-display);font-weight:600;font-size:.875rem">FerrousLion</p>
-                <p class="muted" style="font-size:.75rem">Streams · clips · story runs</p>
-              </div>
-            </div>
-          </div>
+  <main id="top">
+    <h1 class="sr-only">FerrousLion</h1>
+    <section class="hero" aria-labelledby="hero-banner-label">
+      <h2 id="hero-banner-label" class="sr-only">FerrousLion official cover banner</h2>
+      <figure class="hero-banner">
+        <img
+          src="./assets/02-official-cover-banner.png"
+          width="1672"
+          height="941"
+          alt="FerrousLion seated on a lion-carved throne before a volcanic fortress, with the words FerrousLion and Forged. Not Born."
+        >
+      </figure>
+      <div class="hero-cta-band">
+        <div class="wrap hero-actions">
+          <a class="btn btn-secondary" href="#meet">Explore FerrousLion</a>
+          <a class="btn btn-primary" href="https://rumble.com/user/ferrouslion/live" target="_blank" rel="noopener noreferrer">Watch Live<span class="sr-only"> on Rumble</span></a>
+          <a class="btn btn-secondary" href="#music">Discover the Music</a>
         </div>
       </div>
     </section>
 
-    <section class="section" id="schedule" aria-labelledby="schedule-title">
+    <div class="mood">
+      <section class="section" id="meet" aria-labelledby="meet-title">
+        <div class="wrap meet-grid">
+          <div class="avatar-frame">
+            <img
+              src="./assets/01-official-avatar.png"
+              width="1408"
+              height="1408"
+              alt="Official FerrousLion avatar: a golden-orange lion wearing a black metallic FL jacket, standing with arms crossed."
+            >
+          </div>
+          <div class="meet-copy" id="about">
+            <p class="kicker">Meet FerrousLion</p>
+            <h2 id="meet-title">More Than a Game. More Than a Hobby. One Identity.</h2>
+            <p>FerrousLion is where gaming, music, creativity, technology, and community come together. Built through passion, experimentation, and the determination to create something of my own.</p>
+            <div class="philosophy">
+              <strong>Forged. Not Born.</strong>
+              <p><span class="placeholder-flag">PLACEHOLDER</span> A short explanation of the philosophy will go here, in FerrousLion’s own words.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="explore" aria-labelledby="explore-title">
+        <div class="wrap">
+          <div class="section-head">
+            <p class="kicker">Explore the brand</p>
+            <h2 id="explore-title">Six destinations. One house.</h2>
+            <p class="lead">Each door leads to a part of the FerrousLion world. Some rooms are already open. Others are waiting on content before they can be furnished.</p>
+          </div>
+          <ul class="dest-grid">
+            <li id="streams">
+              <a class="card-link" href="#live">
+                <article class="dest-card">
+                  <h3>The Arena</h3>
+                  <p class="dest-label">Gaming &amp; Streaming</p>
+                  <p>Streaming schedule, live broadcast status, recent VODs, featured clips, and the games I play.</p>
+                  <span class="dest-link">Enter the Arena</span>
+                </article>
+              </a>
+            </li>
+            <li>
+              <a class="card-link" href="#music">
+                <article class="dest-card">
+                  <h3>The Sound</h3>
+                  <p class="dest-label">Original Music</p>
+                  <p>Featured releases, the album Forged, Not Born, and a player that stays on this site.</p>
+                  <span class="dest-link">Listen</span>
+                </article>
+              </a>
+            </li>
+            <li id="forge">
+              <a class="card-link" href="#featured">
+                <article class="dest-card">
+                  <h3>The Forge</h3>
+                  <p class="dest-label">Creativity &amp; Technology</p>
+                  <p>Creative projects, AI experimentation, technology, graphic design, and behind-the-scenes work.</p>
+                  <span class="placeholder-flag">Content pending</span>
+                  <span class="dest-link">See the Forge</span>
+                </article>
+              </a>
+            </li>
+            <li id="gameday">
+              <a class="card-link" href="#featured">
+                <article class="dest-card">
+                  <h3>Game Day</h3>
+                  <p class="dest-label">Sports</p>
+                  <p>Auburn Tigers. Miami Dolphins. Manchester United. Inter Miami. Commentary and opinions.</p>
+                  <span class="placeholder-flag">Content pending</span>
+                  <span class="dest-link">Game Day</span>
+                </article>
+              </a>
+            </li>
+            <li id="den">
+              <a class="card-link" href="#community">
+                <article class="dest-card">
+                  <h3>The Den</h3>
+                  <p class="dest-label">Community</p>
+                  <p>Discord, community gaming events, viewer highlights, collaborations, and announcements.</p>
+                  <span class="placeholder-flag">Content pending</span>
+                  <span class="dest-link">Join the Den</span>
+                </article>
+              </a>
+            </li>
+            <li id="store">
+              <a class="card-link" href="./store/index.html">
+                <article class="dest-card is-soon">
+                  <h3>The Store</h3>
+                  <p class="dest-label">Merchandise</p>
+                  <p>Official FerrousLion apparel, accessories, signature collections, and limited releases.</p>
+                  <span class="placeholder-flag">Coming soon</span>
+                  <span class="dest-link">Visit the Store page</span>
+                </article>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </section>
+    </div>
+
+    <section class="section" id="featured" aria-labelledby="featured-title">
       <div class="wrap">
-        <div class="schedule-head">
-          <p class="kicker">Schedule</p>
-          <h2 id="schedule-title">When the stream is on</h2>
+        <div class="section-head">
+          <p class="kicker">Featured content</p>
+          <h2 id="featured-title">What’s showing now</h2>
+          <p class="lead">A curated row drawn from catalogs already on this site. Empty Forge and announcement cards stay hidden until there is something to show.</p>
+        </div>
+        <ul class="feature-grid">
+          <li>
+            <article class="feature-card">
+              <p class="feature-kind">Latest gaming VOD</p>
+              <h3>Lil Uzi Vert's Stronghold won't loot itself. — Fortnite Friday</h3>
+              <p>From the Rumble gallery on this page.</p>
+              <a class="feature-link" href="#videos">Open the videos</a>
+            </article>
+          </li>
+          <li>
+            <article class="feature-card">
+              <p class="feature-kind">Latest YouTube content</p>
+              <h3>“This Has Got to Be a Bot”… I Was Wrong</h3>
+              <p>From the YouTube feed on this page (a Short).</p>
+              <a class="feature-link" href="#videos">Open the videos</a>
+            </article>
+          </li>
+          <li>
+            <article class="feature-card">
+              <p class="feature-kind">Featured music release</p>
+              <h3>Forged, Not Born</h3>
+              <p>Album on the site player: From the First Drop, Five Stars Flashing, Forged, Not Born.</p>
+              <a class="feature-link" href="#music">Play the album</a>
+            </article>
+          </li>
+          <!-- Hidden until content exists: Recent creative project (The Forge) featured card.
+          <li>
+            <article class="feature-card">
+              <p class="feature-kind">Recent creative project</p>
+              <span class="placeholder-flag">PLACEHOLDER</span>
+              <h3>Example — no Forge project is published yet</h3>
+              <p>This card stays hidden until FerrousLion supplies a project.</p>
+            </article>
+          </li>
+          -->
+          <!-- Hidden until content exists: Latest announcement featured card.
+          <li>
+            <article class="feature-card">
+              <p class="feature-kind">Latest announcement</p>
+              <span class="placeholder-flag">PLACEHOLDER</span>
+              <h3>Example — no announcement feed exists yet</h3>
+              <p>This card stays hidden until an announcement is published.</p>
+            </article>
+          </li>
+          -->
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" id="live" aria-labelledby="live-title">
+      <div class="wrap">
+        <div class="section-head">
+          <p class="kicker">Live &amp; Upcoming</p>
+          <h2 id="live-title">The next time the stream is on</h2>
           <p class="lead">Rumble is the live stage. Twitch and 𝕏 carry the same show through Rumble multistream.</p>
         </div>
-
-        <!--
-          SCHEDULE NOTICE — edit this block for a holiday, one-off special, or one-off cancellation.
-          data-date is the event day in America/Chicago, written YYYY-MM-DD.
-          The slot stays hidden after that Chicago date, so a stale notice never lingers.
-          Leave data-date empty when there is no upcoming special or cancellation.
-        -->
-        <article class="card hairline schedule-special" id="schedule-special" data-date="2026-11-26" hidden>
+        <div class="live-panel live-schedule">
+          <div>
+            <!--
+              SCHEDULE NOTICE — edit this block for a holiday, one-off special, or one-off cancellation.
+              data-date is the event day in America/Chicago, written YYYY-MM-DD.
+              The slot stays hidden after that Chicago date, so a stale notice never lingers.
+              Leave data-date empty when there is no upcoming special or cancellation.
+            -->
+            <article class="card hairline schedule-special" id="schedule-special" data-date="2026-11-26" hidden>
           <p class="kicker">Schedule change</p>
           <h3>No stream on Thanksgiving</h3>
           <p>Thu, Nov 26, 2026. The Thursday stream is canceled for Thanksgiving.</p>
         </article>
-
-        <ul class="schedule-grid">
+                    <ul class="schedule-grid">
           <li class="card hairline schedule-slot">
             <h3>Monday</h3>
             <p class="schedule-time">5:30–7:15 PM CT</p>
@@ -189,85 +321,35 @@
         </ul>
         <p class="schedule-note">Trial schedule: Nov 23 – Dec 18, 2026.</p>
         <p class="schedule-note">Thanksgiving Day, Christmas Day and Easter Sunday are always canceled.</p>
-        <p class="schedule-cta">
-          <a class="btn btn-solid" href="https://rumble.com/user/ferrouslion" target="_blank" rel="noreferrer">Watch Live on Rumble</a>
-        </p>
-      </div>
-    </section>
-
-    <section class="section" id="play" aria-labelledby="play-title">
-      <div class="wrap">
-        <div class="games-head">
-          <p class="kicker">What I play</p>
-          <h2 id="play-title">The rotation on stream</h2>
-          <div class="copy">
-            <p>Fortnite is home base, but the adventure doesn’t stop there.</p>
-            <p>From open-world exploration and story-driven adventures to sports games and the occasional trip into something completely unexpected, there’s always something happening.</p>
-            <p>The lineup changes, but the goal stays the same: enjoy the game, have some fun, and make every session count.</p>
+            <div class="live-links">
+              <a class="btn btn-primary" href="https://rumble.com/user/ferrouslion/live" target="_blank" rel="noopener noreferrer">Watch Live on Rumble</a>
+              <a class="btn btn-secondary" href="https://www.youtube.com/@ferrouslion" target="_blank" rel="noopener noreferrer">YouTube</a>
+              <a class="btn btn-ghost" href="https://rumble.com/user/ferrouslion" target="_blank" rel="noopener noreferrer">Rumble channel</a>
+            </div>
           </div>
         </div>
-        <ul class="game-grid">
-          <li>
-            <article class="card hairline hairline-hover">
-              <div class="card-media"><img src="./games/fortnite.jpg" alt="Illustrated lion and two players with rifles on a beach"><span class="tag">PC/Xbox/PS5</span></div>
-              <div class="card-body"><h3>Fortnite</h3><p class="creator-code">Support-A-Creator code: ferrouslion</p><p>The home turf. Duos with FerrousCat, solo sessions, and plenty of unpredictable moments along the way.</p></div>
-            </article>
-          </li>
-          <li>
-            <article class="card hairline hairline-hover">
-              <div class="card-media"><img src="./games/gta.jpg" alt="Illustrated lion driving an orange sports car through a nighttime city chase"><span class="tag">PS5</span></div>
-              <div class="card-body"><h3>Grand Theft Auto</h3><p>Vice City nights are still on the way. City chaos, side streets, and whatever trouble the evening turns into.</p></div>
-            </article>
-          </li>
-          <li>
-            <article class="card hairline hairline-hover">
-              <div class="card-media"><img src="./games/madden.jpg" alt="Illustrated lion quarterback in an orange jersey lining up a play"><span class="tag">Xbox</span></div>
-              <div class="card-body"><h3>Madden</h3><p>I take the Dolphins and see how far a season can go. Play calls, friendly competition, and a Super Bowl chase if it holds together.</p></div>
-            </article>
-          </li>
-          <li>
-            <article class="card hairline hairline-hover">
-              <div class="card-media"><img src="./games/starfield.jpg" alt="Astronaut standing on a red planet in front of a ringed world"><span class="tag">PC</span></div>
-              <div class="card-body"><h3>Starfield</h3><p>I wander strange new worlds, put outposts together, and shape the trip with custom mods.</p></div>
-            </article>
-          </li>
-          <li>
-            <article class="card hairline hairline-hover">
-              <div class="card-media"><img src="./games/horizon.jpg" alt="Machine creature on a sunlit ridge above stone ruins and grassland"><span class="tag">PS5</span></div>
-              <div class="card-body"><h3>Horizon Zero Dawn and Horizon Forbidden West</h3><p>This is where I slow down. Open country, machine hunts, and a long story I can pick up whenever I want to unwind.</p></div>
-            </article>
-          </li>
-          <li>
-            <article class="card hairline hairline-hover">
-              <div class="card-media"><img src="./brand/avatar-sm.png" alt="FerrousLion" class="fit-top"><span class="tag">Talk</span></div>
-              <div class="card-body"><h3>Just Chatting</h3><p>Sometimes the controller stays down. Sports takes, lobby talk, and whoever feels like hanging out in chat.</p></div>
-            </article>
-          </li>
-        </ul>
       </div>
     </section>
 
     <section class="section" id="videos" aria-labelledby="videos-heading">
       <div class="wrap">
-        <div class="content-head">
-          <div>
-            <p class="kicker">Latest content</p>
-            <h2 id="videos-heading">Latest Streams, Videos &amp; Clips</h2>
-            <div class="copy">
-              <p>Missed a stream? Want to catch the latest highlights?</p>
-              <p>This is where you’ll find recent streams, gameplay videos, and short-form clips from across the FerrousLion community.</p>
-              <p>Catch me live on Rumble, revisit previous sessions, or check out some of the best moments on YouTube and TikTok.</p>
-            </div>
+        <div class="section-head">
+          <p class="kicker">Latest content</p>
+          <h2 id="videos-heading">Latest Streams, Videos &amp; Clips</h2>
+          <div class="copy">
+            <p>Missed a stream? Want to catch the latest highlights?</p>
+            <p>This is where you’ll find recent streams, gameplay videos, and short-form clips from across the FerrousLion community.</p>
+            <p>Catch me live on Rumble, revisit previous sessions, or check out some of the best moments on YouTube and TikTok.</p>
           </div>
         </div>
 
         <div class="platform-block">
-          <div class="tiktok-head">
+          <div class="platform-head">
             <div>
               <h3>YouTube</h3>
               <p class="platform-note">Gameplay videos, stream highlights, Shorts, and story-driven adventures.</p>
             </div>
-            <a class="btn btn-outline btn-sm" href="https://www.youtube.com/@ferrouslion" target="_blank" rel="noreferrer">YouTube</a>
+            <a class="btn btn-secondary btn-sm" href="https://www.youtube.com/@ferrouslion" target="_blank" rel="noopener noreferrer">YouTube</a>
           </div>
           <ul class="video-grid" id="youtube-videos"></ul>
         </div>
@@ -307,47 +389,47 @@
   ]
 }
         </script>
-        <div class="tiktok-head">
+        <div class="platform-head">
           <div>
             <h3 id="videos-title">Rumble</h3>
             <p class="platform-note">Watch live streams and revisit recent broadcasts.</p>
           </div>
           <div class="featured-actions">
-            <a class="btn btn-solid btn-sm" href="https://rumble.com/user/ferrouslion" target="_blank" rel="noopener noreferrer">Watch Live on Rumble</a>
-            <a class="btn btn-outline btn-sm" id="rumble-channel-link" href="https://rumble.com/user/ferrouslion" target="_blank" rel="noopener noreferrer">View all videos</a>
+            <a class="btn btn-primary btn-sm" href="https://rumble.com/user/ferrouslion/live" target="_blank" rel="noopener noreferrer">Watch Live on Rumble</a>
+            <a class="btn btn-secondary btn-sm" id="rumble-channel-link" href="https://rumble.com/user/ferrouslion" target="_blank" rel="noopener noreferrer">View all videos</a>
           </div>
         </div>
         <ul class="video-grid featured-rumble" id="featured-rumble"></ul>
         </section>
 
         <div class="platform-block">
-          <div class="tiktok-head">
+          <div class="platform-head">
             <div>
               <h3>Twitch</h3>
               <p class="platform-note">Additional streams, VODs, and gaming sessions.</p>
             </div>
-            <a class="btn btn-outline btn-sm" href="https://www.twitch.tv/ferrouslion/videos" target="_blank" rel="noreferrer">ferrouslion</a>
+            <a class="btn btn-secondary btn-sm" href="https://www.twitch.tv/ferrouslion/videos" target="_blank" rel="noopener noreferrer">ferrouslion</a>
           </div>
           <ul class="video-grid" id="twitch-videos"></ul>
         </div>
 
         <div class="platform-block">
-          <div class="tiktok-head">
+          <div class="platform-head">
             <div>
               <h3>TikTok</h3>
               <p class="platform-note">Quick clips, memorable moments, and gaming highlights.</p>
             </div>
-            <a class="btn btn-outline btn-sm" href="https://www.tiktok.com/@ferrouslion" target="_blank" rel="noreferrer">@ferrouslion</a>
+            <a class="btn btn-secondary btn-sm" href="https://www.tiktok.com/@ferrouslion" target="_blank" rel="noopener noreferrer">@ferrouslion</a>
           </div>
           <div class="tiktok-card hairline" id="tiktok-embed">
             <blockquote class="tiktok-embed" cite="https://www.tiktok.com/@ferrouslion" data-unique-id="ferrouslion" data-embed-type="creator">
               <section>
-                <a href="https://www.tiktok.com/@ferrouslion" target="_blank" rel="noreferrer">
+                <a href="https://www.tiktok.com/@ferrouslion" target="_blank" rel="noopener noreferrer">
                   <span>
                     <span style="display:block;font-family:var(--font-display);font-size:1.125rem;font-weight:600">@ferrouslion</span>
-                    <span class="muted" style="display:block;margin-top:.35rem;font-size:.875rem">Quick clips load here from TikTok. Open the profile if the embed is quiet.</span>
+                    <span style="display:block;margin-top:.35rem;font-size:.875rem;color:var(--muted)">Quick clips load here from TikTok. Open the profile if the embed is quiet.</span>
                   </span>
-                  <span class="btn btn-solid btn-sm">Open TikTok</span>
+                  <span class="btn btn-primary btn-sm">Open TikTok</span>
                 </a>
               </section>
             </blockquote>
@@ -383,14 +465,12 @@
   ]
 }
         </script>
-        <div class="content-head">
-          <div>
-            <p class="kicker">Music</p>
-            <h2 id="music-title">Albums and songs</h2>
-            <p class="lead">Play Forged, Not Born here. Each track stays on this page.</p>
-          </div>
+        <div class="section-head">
+          <p class="kicker">Featured music</p>
+          <h2 id="music-title">Forged, Not Born</h2>
+          <p class="lead">Play Forged, Not Born here. Each track stays on this page. Playback does not start automatically.</p>
         </div>
-        <div class="card hairline music-card music-player" id="music-release">
+        <div class="music-card music-player" id="music-release">
           <div class="music-art">
             <img src="./music/forged-not-born.jpg" width="600" height="600" alt="Forged, Not Born album cover by FerrousLion" decoding="async">
           </div>
@@ -414,6 +494,7 @@
               </button>
             </div>
             <audio id="music-audio" controls preload="none" src="https://media.ferrouslion.com/playback/forged-not-born/from-the-first-drop/6d61a341fdd869c92d87c1517df8c01268687366d9117ba77d4478370fbb5b7a.mp3" aria-label="From the First Drop"></audio>
+            <p class="music-note">Lyrics are not on file yet.</p>
           </div>
         </div>
         <div class="music-fallback" id="music-fallback">
@@ -433,7 +514,7 @@
             </li>
           </ol>
         </div>
-        <script>
+                <script>
           (function () {
             var player = document.getElementById("music-release");
             var audio = document.getElementById("music-audio");
@@ -749,69 +830,62 @@
       </div>
     </section>
 
-    <section class="section" id="connect" aria-labelledby="connect-title">
+    <section class="section" id="community" aria-labelledby="community-title">
       <div class="wrap">
-        <div class="connect-head">
-          <p class="kicker">Connect</p>
-          <h2 id="connect-title">Find me everywhere the lion lands</h2>
-          <div class="copy">
-            <p>The conversation doesn’t end when the stream goes offline.</p>
-            <p>Follow FerrousLion across your favorite platforms for stream announcements, gaming clips, sports conversations, community updates, and everything happening along the way.</p>
-            <p>One name. One community. Plenty of ways to connect.</p>
+        <div class="den-panel">
+          <p class="kicker">The Den</p>
+          <h2 id="community-title">Come in. The door is open.</h2>
+          <p class="lead">The Den is the community room: Discord, shared games, viewer highlights, and collaborations. You are welcome whether you are here for the streams, the music, or game day.</p>
+          <p><span class="placeholder-flag">PLACEHOLDER</span> A public Discord invite is not on file. Upcoming events cannot be listed until that calendar exists.</p>
+          <div class="den-actions">
+            <a class="btn btn-primary" aria-disabled="true" href="#community">Discord invite — pending</a>
+            <a class="btn btn-secondary" href="#connect">Other ways to connect</a>
           </div>
         </div>
-        <ul class="social-grid">
-          <li>
-            <a class="hairline hairline-hover" href="https://pickax.com/ferrouslion" target="_blank" rel="noreferrer">
-              <span class="icon-box"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.4 3.2c-2.4-.1-5.1.9-7.1 2.7L12 7.2 10.7 5.9c-1.9-1.8-4.7-2.8-7.1-2.7l2.6 2.6c.5.5.5 1.3 0 1.8L4.8 9l.7.7 1.4-1.4c.5-.5 1.3-.5 1.8 0L11 10.6v8.1c0 .7.6 1.3 1.3 1.3s1.3-.6 1.3-1.3v-8.1l2.3-2.3c.5-.5.5-1.3 0-1.8L14.5 5.1l.7-.7 1.4 1.4c.5.5 1.3.5 1.8 0l2-2.6Z"/></svg></span>
-              <span><h3>Pickax</h3><span class="handle">ferrouslion</span><p>Community updates and conversations.</p></span>
-            </a>
-          </li>
-          <li>
-            <a class="hairline hairline-hover" href="https://rumble.com/user/ferrouslion" target="_blank" rel="noreferrer">
-              <span class="icon-box"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.62 8.28a6.9 6.9 0 0 0-2.67-2.72A9.4 9.4 0 0 0 12.3 4.5c-1.7 0-3.28.36-4.66 1.06A6.9 6.9 0 0 0 4.97 8.3 8.3 8.3 0 0 0 4 12.14c0 1.4.33 2.66.97 3.85a6.9 6.9 0 0 0 2.67 2.73 9.4 9.4 0 0 0 4.66 1.05c1.7 0 3.28-.35 4.65-1.05a6.9 6.9 0 0 0 2.67-2.73c.64-1.19.97-2.45.97-3.85 0-1.38-.32-2.64-.97-3.86ZM10.4 8.4h2.28c1.1 0 1.95.24 2.52.73.58.48.86 1.16.86 2.04 0 .7-.18 1.28-.54 1.74-.36.45-.88.75-1.54.88l2.3 3.41h-2.16l-2.04-3.2h-.52v3.2H10.4V8.4Zm2.16 4.05c.46 0 .82-.12 1.07-.36.26-.25.38-.58.38-1 0-.44-.12-.78-.38-1.02-.25-.25-.61-.37-1.07-.37h-.82v2.75h.82Z"/></svg></span>
-              <span><h3>Rumble</h3><span class="handle">ferrouslion</span><p>The main destination for live streams and VODs.</p></span>
-            </a>
-          </li>
-          <li>
-            <a class="hairline hairline-hover" href="https://x.com/FerrousLion" target="_blank" rel="noreferrer">
-              <span class="icon-box"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M14.72 10.34 22.1 2h-1.75l-6.4 7.24L8.83 2H2.2l7.74 11.02L2.2 22h1.75l6.77-7.66L15.17 22h6.63l-7.08-11.66Zm-2.4 2.71-.78-1.09L4.58 3.3h2.68l5.03 7.01.78 1.09 6.54 9.12h-2.68l-5.61-7.47Z"/></svg></span>
-              <span><h3>X</h3><span class="handle">@FerrousLion</span><p>Day-to-day thoughts, sports conversations, and stream announcements.</p></span>
-            </a>
-          </li>
-          <li>
-            <a class="hairline hairline-hover" href="https://www.youtube.com/@ferrouslion" target="_blank" rel="noreferrer">
-              <span class="icon-box"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.5 6.2a3.05 3.05 0 0 0-2.15-2.16C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.35.44A3.05 3.05 0 0 0 .5 6.2 31.9 31.9 0 0 0 0 12a31.9 31.9 0 0 0 .5 5.8 3.05 3.05 0 0 0 2.15 2.16c1.85.44 9.35.44 9.35.44s7.5 0 9.35-.44a3.05 3.05 0 0 0 2.15-2.16A31.9 31.9 0 0 0 24 12a31.9 31.9 0 0 0-.5-5.8ZM9.75 15.57V8.43L15.84 12l-6.09 3.57Z"/></svg></span>
-              <span><h3>YouTube</h3><span class="handle">@ferrouslion</span><p>Videos, Shorts, stream highlights, and longer gameplay content.</p></span>
-            </a>
-          </li>
-          <li>
-            <a class="hairline hairline-hover" href="https://www.twitch.tv/ferrouslion" target="_blank" rel="noreferrer">
-              <span class="icon-box"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.2 1 1 5.4v15.2h5.2V23h2.8l2.6-2.4h4L21.8 15V1H3.2Zm16.4 12.8-3 3h-4.8l-2.6 2.4v-2.4H4.8V3.2h14.8v10.6ZM16.6 6.4h-2.2v6h2.2v-6Zm-5.8 0H8.6v6h2.2v-6Z"/></svg></span>
-              <span><h3>Twitch</h3><span class="handle">ferrouslion</span><p>Live gaming sessions and community interaction.</p></span>
-            </a>
-          </li>
-          <li>
-            <a class="hairline hairline-hover" href="https://www.tiktok.com/@ferrouslion" target="_blank" rel="noreferrer">
-              <span class="icon-box"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.6 7.76a6.7 6.7 0 0 1-3.92-1.24v8.16a5.68 5.68 0 1 1-5.68-5.68c.28 0 .56.03.84.08v2.8a2.92 2.92 0 1 0 2.04 2.8V1.5h2.8c.22 1.72 1.52 3.2 3.16 3.84.6.24 1.24.38 1.88.42v2Z"/></svg></span>
-              <span><h3>TikTok</h3><span class="handle">@ferrouslion</span><p>Short-form gaming clips and memorable moments.</p></span>
-            </a>
-          </li>
-        </ul>
       </div>
     </section>
   </main>
 
-  <footer class="footer">
-    <div class="wrap footer-bar">
-      <div class="footer-brand">
-        <img src="./brand/crest-sm.png" alt="">
-        <div class="footer-lines">
+  <footer class="footer" id="connect">
+    <div class="wrap">
+      <div class="footer-grid">
+        <div class="footer-brand">
           <strong>FerrousLion</strong>
-          <span class="footer-motto">FORGED. NOT BORN.</span>
-          <span>Built for the next drop-in.</span>
-          <span>Epic Creator Code: ferrouslion</span>
+          <span class="footer-motto">Forged. Not Born.</span>
+          <p>Official digital headquarters for gaming, original music, creativity, sports, and community.</p>
+          <p>Epic Creator Code: ferrouslion</p>
         </div>
+        <div>
+          <h2>Navigate</h2>
+          <ul>
+            <li><a href="#top">Home</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#streams">Streams</a></li>
+            <li><a href="#music">Music</a></li>
+            <li><a href="#forge">The Forge</a></li>
+            <li><a href="#gameday">Game Day</a></li>
+            <li><a href="#den">The Den</a></li>
+            <li><a href="./store/index.html">Store</a></li>
+            <li><a href="#connect">Connect</a></li>
+          </ul>
+        </div>
+        <div>
+          <h2>Official platforms</h2>
+          <ul>
+            <li><a href="https://pickax.com/ferrouslion" target="_blank" rel="noopener noreferrer">Pickax</a></li>
+            <li><a href="https://rumble.com/user/ferrouslion" target="_blank" rel="noopener noreferrer">Rumble</a></li>
+            <li><a href="https://www.youtube.com/@ferrouslion" target="_blank" rel="noopener noreferrer">YouTube</a></li>
+            <li><a href="https://www.twitch.tv/ferrouslion" target="_blank" rel="noopener noreferrer">Twitch</a></li>
+            <li><a href="https://x.com/FerrousLion" target="_blank" rel="noopener noreferrer">X</a></li>
+            <li><a href="https://www.tiktok.com/@ferrouslion" target="_blank" rel="noopener noreferrer">TikTok</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-legal">
+        <span>© 2026 FerrousLion</span>
+        <a href="#privacy">Privacy policy <span class="placeholder-flag">Content pending</span></a>
+        <a href="#terms">Terms of service <span class="placeholder-flag">Content pending</span></a>
+        <span>Store policies — when the store launches</span>
       </div>
     </div>
   </footer>
